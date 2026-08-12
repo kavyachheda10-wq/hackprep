@@ -1,0 +1,169 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>MathCraft — Profile</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="dashboard.html" class="nav-brand">⛏️ MathCraft</a>
+    <div class="nav-stats">
+      <div class="stat-chip xp"><span class="icon">⚡</span><span class="nav-xp">0 XP</span></div>
+      <div class="stat-chip em"><span class="icon">💎</span><span class="nav-em">0</span></div>
+      <div class="stat-chip"><span class="nav-lvl">Lv.1</span></div>
+      <button onclick="MC.logout()" style="background:none;border:none;color:rgba(255,255,255,0.5);cursor:pointer;font-size:0.8rem">Logout</button>
+    </div>
+  </nav>
+
+  <div class="page-wrap">
+    <div class="profile-grid">
+      <!-- Left -->
+      <aside>
+        <div class="card" style="text-align:center;padding:2rem;margin-bottom:1rem">
+          <div id="bigAvatar" style="font-size:4rem;width:90px;height:90px;border-radius:50%;background:linear-gradient(135deg,var(--emerald),var(--diamond));display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;border:3px solid var(--gold);box-shadow:0 0 20px rgba(255,213,79,0.3)">🧙</div>
+          <div style="font-family:var(--pixel);font-size:0.7rem;color:var(--gold);margin-bottom:4px" id="pName">HERO</div>
+          <div style="color:var(--emerald);font-size:0.82rem;margin-bottom:1.5rem" id="pTitle">Level 1 Apprentice</div>
+
+          <!-- Avatar picker -->
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.5rem;margin-bottom:1rem">
+            <span class="pick-avatar" onclick="pickAvatar('🧙')">🧙</span>
+            <span class="pick-avatar" onclick="pickAvatar('⚔️')">⚔️</span>
+            <span class="pick-avatar" onclick="pickAvatar('🧝')">🧝</span>
+            <span class="pick-avatar" onclick="pickAvatar('🐉')">🐉</span>
+            <span class="pick-avatar" onclick="pickAvatar('🤖')">🤖</span>
+            <span class="pick-avatar" onclick="pickAvatar('🦅')">🦅</span>
+            <span class="pick-avatar" onclick="pickAvatar('🧜')">🧜</span>
+            <span class="pick-avatar" onclick="pickAvatar('🧚')">🧚</span>
+            <span class="pick-avatar" onclick="pickAvatar('⭐')">⭐</span>
+            <span class="pick-avatar" onclick="pickAvatar('💎')">💎</span>
+          </div>
+          <div style="font-size:0.72rem;color:rgba(255,255,255,0.4)">Tap to change avatar</div>
+        </div>
+
+        <div class="card" style="margin-bottom:1rem">
+          <h3 class="section-title">📊 Stats</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+            <div class="mini-stat"><div class="val" id="sXP">0</div><div class="lbl">⚡ Total XP</div></div>
+            <div class="mini-stat"><div class="val" id="sEm">0</div><div class="lbl">💎 Emeralds</div></div>
+            <div class="mini-stat"><div class="val" id="sQ">0</div><div class="lbl">📝 Quizzes</div></div>
+            <div class="mini-stat"><div class="val" id="sStr">0</div><div class="lbl">🔥 Streak</div></div>
+          </div>
+        </div>
+
+        <a href="dashboard.html" class="btn btn-primary" style="width:100%;justify-content:center;text-decoration:none;display:flex">🏠 Back to Dashboard</a>
+      </aside>
+
+      <!-- Right -->
+      <main>
+        <h2 class="section-title">🏅 Badges & Achievements</h2>
+        <div class="badges-grid" id="badgesGrid" style="margin-bottom:2rem"></div>
+
+        <h3 class="section-title">📈 World Progress</h3>
+        <div id="progressBars" style="margin-bottom:2rem"></div>
+
+        <h3 class="section-title">📜 Quiz History</h3>
+        <div class="lb-table" id="historyTable">
+          <div class="lb-table-row header" style="grid-template-columns:1fr 80px 80px 80px">
+            <div>Topic</div><div>Score</div><div>XP</div><div>Date</div>
+          </div>
+          <div id="historyBody"></div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"><span class="toast-icon">🎮</span><span class="toast-text"></span></div>
+
+  <style>
+    .pick-avatar { font-size:1.5rem; cursor:pointer; padding:4px; border-radius:6px; transition:background 0.2s; display:block; text-align:center; }
+    .pick-avatar:hover { background:rgba(255,255,255,0.1); }
+  </style>
+
+  <script src="../js/app.js"></script>
+  <script>
+    if(!MC.requireAuth()){}
+
+    const ALL_BADGES = [
+      {id:"first_login",  name:"Welcome Hero",      icon:"🌟"},
+      {id:"first_quiz",   name:"First Quest",        icon:"📝"},
+      {id:"perfect_quiz", name:"Perfect Quiz",       icon:"⭐"},
+      {id:"boss_trigonometry", name:"Summit Sage ×", icon:"🏔️"},
+      {id:"boss_probability",  name:"Fortune Keeper ×",icon:"🎲"},
+      {id:"boss_statistics",   name:"Data Golem ×",  icon:"🤖"},
+      {id:"boss_equations",    name:"Forge Master ×",icon:"⚒️"},
+      {id:"boss_sets",         name:"Forest Guard ×",icon:"🌲"},
+      {id:"boss_triangles",    name:"Triangle Titan ×",icon:"🛡️"},
+    ];
+
+    const WORLDS = ["trigonometry","probability","statistics","equations","sets","triangles"];
+    const WORLD_ICONS = {trigonometry:"🏔️",probability:"🔢",statistics:"📊",equations:"⚗️",sets:"🌿",triangles:"🏰"};
+    const LEVEL_TITLES = ["Apprentice","Journeyman","Adept","Crafter","Expert","Master","Grand Master"];
+
+    function init(){
+      const u = MC.getUser();
+      MC.updateNavStats();
+
+      document.getElementById("bigAvatar").textContent = u.avatar;
+      document.getElementById("pName").textContent = u.username.toUpperCase();
+      const title = LEVEL_TITLES[Math.min(u.level-1,LEVEL_TITLES.length-1)];
+      document.getElementById("pTitle").textContent = `Level ${u.level} ${title}`;
+      document.getElementById("sXP").textContent  = u.xp + (u.level-1)*500;
+      document.getElementById("sEm").textContent  = u.emeralds;
+      document.getElementById("sQ").textContent   = u.quizHistory.length;
+      document.getElementById("sStr").textContent = u.streak;
+
+      // Badges
+      const grid = document.getElementById("badgesGrid");
+      ALL_BADGES.forEach(b=>{
+        const earned = u.achievements.includes(b.id);
+        const div = document.createElement("div");
+        div.className = `badge-item ${earned?"":"locked"}`;
+        div.innerHTML = `<span class="badge-icon">${b.icon}</span><div class="badge-name">${b.name}</div>`;
+        if(earned) div.title = "Earned!";
+        grid.appendChild(div);
+      });
+
+      // Progress bars
+      const pbEl = document.getElementById("progressBars");
+      WORLDS.forEach(w=>{
+        const p = u.progress[w] || 0;
+        pbEl.innerHTML += `<div style="margin-bottom:1rem">
+          <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:4px">
+            <span>${WORLD_ICONS[w]} ${w.charAt(0).toUpperCase()+w.slice(1)}</span>
+            <span style="color:rgba(255,255,255,0.5)">${p}%</span>
+          </div>
+          <div class="xp-bar-bg"><div class="xp-bar-fill" style="width:${p}%"></div></div>
+        </div>`;
+      });
+
+      // History
+      const hBody = document.getElementById("historyBody");
+      if(u.quizHistory.length===0){
+        hBody.innerHTML=`<div style="text-align:center;padding:1rem;color:rgba(255,255,255,0.4)">No quizzes yet!</div>`;
+      } else {
+        u.quizHistory.forEach(h=>{
+          hBody.innerHTML+=`<div class="lb-table-row" style="grid-template-columns:1fr 80px 80px 80px">
+            <div>${WORLD_ICONS[h.topic]||"📝"} ${h.topic}</div>
+            <div style="color:var(--emerald)">${h.score}/${h.total}</div>
+            <div style="color:var(--diamond)">+${h.xpEarned}</div>
+            <div style="color:rgba(255,255,255,0.4);font-size:0.75rem">${h.date}</div>
+          </div>`;
+        });
+      }
+    }
+
+    function pickAvatar(emoji){
+      const u = MC.getUser();
+      u.avatar = emoji;
+      MC.saveUser(u);
+      document.getElementById("bigAvatar").textContent = emoji;
+      MC.showToast(`Avatar changed to ${emoji}`, "green");
+    }
+
+    init();
+  </script>
+</body>
+</html>
