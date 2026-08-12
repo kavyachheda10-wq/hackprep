@@ -1,0 +1,32 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# MathCraft .gitignore
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── SECRET / API KEYS ────────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# Browser-side secret config (contains real Groq API key)
+js/config.js
+
+# ── OS FILES ─────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── EDITOR / IDE ─────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.user
+
+# ── NODE (if added later) ────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# ── BUILD OUTPUT (if added later) ────────────────────────────────────────────
+dist/
+build/
+.cache/
