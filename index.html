@@ -1,0 +1,52 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MathCraft — Mine Knowledge. Craft Your Future.</title>
+  <meta name="description" content="MathCraft is a gamified math learning platform. Explore themed worlds, solve quests, earn XP and become a Master Crafter of Mathematics." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="landing-page">
+  <div class="bg-scene">
+    <div class="sky"></div>
+    <div class="clouds">
+      <div class="cloud c1"></div>
+      <div class="cloud c2"></div>
+      <div class="cloud c3"></div>
+    </div>
+    <div class="particles" id="particles"></div>
+    <div class="ground-row" id="groundRow"></div>
+    <div class="math-symbols" id="mathSymbols"></div>
+  </div>
+  <main class="hero-content">
+    <div class="logo-block animate-logo">
+      <span class="logo-icon">⛏️</span>
+      <h1 class="logo-text">MathCraft</h1>
+    </div>
+    <p class="tagline">Mine Knowledge. Craft Your Future.</p>
+    <p class="hero-sub">6 Themed Worlds · 100+ Questions · XP · Leaderboards · Boss Battles</p>
+    <div class="hero-actions">
+      <a href="pages/auth.html" class="btn btn-primary" id="begin-btn">⚔️ Begin Adventure</a>
+      <a href="pages/auth.html?mode=login" class="btn btn-secondary" id="login-btn">🔑 Login</a>
+    </div>
+    <div class="feature-pills">
+      <span class="pill">🎮 Gamified Learning</span>
+      <span class="pill">🏆 Leaderboards</span>
+      <span class="pill">💎 Earn Emeralds</span>
+      <span class="pill">🐉 Boss Battles</span>
+    </div>
+  </main>
+  <section class="worlds-preview">
+    <div class="world-card-mini" style="--clr:#2ECC71">🔢 Probability Mines</div>
+    <div class="world-card-mini" style="--clr:#4FC3F7">📊 Statistics Lab</div>
+    <div class="world-card-mini" style="--clr:#FF7043">⚗️ Equation Forge</div>
+    <div class="world-card-mini" style="--clr:#8E44AD">🌿 Sets Grove</div>
+    <div class="world-card-mini active-world" style="--clr:#FFD54F">🏔️ Trig Peaks</div>
+    <div class="world-card-mini" style="--clr:#7F8C8D">🏰 Triangle Citadel</div>
+  </section>
+  <script src="js/landing.js"></script>
+</body>
+</html>

@@ -1,0 +1,171 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>MathCraft — Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="dashboard.html" class="nav-brand">⛏️ MathCraft</a>
+    <div class="nav-stats">
+      <div class="stat-chip xp"><span class="icon">⚡</span><span class="nav-xp">0 XP</span></div>
+      <div class="stat-chip em"><span class="icon">💎</span><span class="nav-em">0</span></div>
+      <div class="stat-chip"><span class="nav-lvl">Lv.1</span></div>
+      <button onclick="MC.logout()" style="background:none;border:none;color:rgba(255,255,255,0.5);cursor:pointer;font-size:0.8rem;">Logout</button>
+    </div>
+  </nav>
+
+  <div class="page-wrap">
+    <div class="dashboard-grid">
+      <!-- Left Sidebar -->
+      <aside class="profile-sidebar">
+        <div class="avatar-wrap">
+          <div class="avatar-circle" id="avatarCircle">🧙</div>
+          <div class="player-name" id="playerName">HERO</div>
+          <div class="player-level" id="playerLevel">Level 1 Apprentice</div>
+          <div class="xp-bar-wrap">
+            <div class="xp-bar-label">
+              <span>XP Progress</span>
+              <span id="xpFraction">0/500</span>
+            </div>
+            <div class="xp-bar-bg"><div class="xp-bar-fill" id="xpFill" style="width:0%"></div></div>
+          </div>
+        </div>
+
+        <div class="stats-row">
+          <div class="mini-stat"><div class="val" id="statEm">0</div><div class="lbl">💎 Emeralds</div></div>
+          <div class="mini-stat"><div class="val" id="statQz">0</div><div class="lbl">📝 Quizzes</div></div>
+          <div class="mini-stat"><div class="val" id="statAch">0</div><div class="lbl">🏆 Badges</div></div>
+          <div class="mini-stat"><div class="val" id="statComp">0</div><div class="lbl">🌍 Worlds</div></div>
+        </div>
+
+        <div class="streak-card">
+          <div class="streak-num" id="streakNum">1</div>
+          <div class="streak-info">
+            <div class="lbl">Day Streak</div>
+            <div class="val" id="streakMsg">Keep it up! 🔥</div>
+          </div>
+        </div>
+
+        <br/>
+        <h3 class="section-title">📋 Daily Missions</h3>
+        <div class="mission-card">
+          <div class="mission-title">⚔️ Solve 10 Questions</div>
+          <div class="mission-prog" id="missionProg">0 / 10 complete</div>
+        </div>
+        <div class="mission-card">
+          <div class="mission-title">🎯 Earn 150 XP Today</div>
+          <div class="mission-prog">Complete a quiz to earn XP</div>
+        </div>
+
+        <br/>
+        <h3 class="section-title">🏆 Leaderboard</h3>
+        <div id="lbPreview"></div>
+        <br/>
+        <a href="leaderboard.html" class="btn btn-outline btn-sm" style="font-size:0.7rem;padding:0.5rem 1rem;width:100%;text-align:center;text-decoration:none;display:block;">View Full Leaderboard →</a>
+      </aside>
+
+      <!-- Main Content -->
+      <main>
+        <h2 class="section-title">🌍 Choose Your World</h2>
+        <div class="worlds-grid" id="worldsGrid"></div>
+
+        <br/>
+        <h3 class="section-title">📜 Recent Activity</h3>
+        <div id="recentActivity" class="card" style="padding:1rem;">
+          <p style="color:rgba(255,255,255,0.4);font-size:0.85rem;text-align:center;">No activity yet. Start your first quest!</p>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"><span class="toast-icon">🎮</span><span class="toast-text"></span></div>
+
+  <script src="../js/app.js"></script>
+  <script>
+    if(!MC.requireAuth()) {}
+
+    const WORLDS = [
+      { id:"trigonometry", name:"Trigonometry Peaks", icon:"🏔️", tag:"sin · cos · tan", color:"#FFD54F", unlocked:true },
+      { id:"probability",  name:"Probability Mines",  icon:"🔢", tag:"Chance · Events", color:"#2ECC71", unlocked:true },
+      { id:"statistics",   name:"Statistics Lab",     icon:"📊", tag:"Mean · Mode · Median", color:"#4FC3F7", unlocked:true },
+      { id:"equations",    name:"Equation Forge",     icon:"⚗️", tag:"Linear · Quadratic", color:"#FF7043", unlocked:true },
+      { id:"sets",         name:"Sets Grove",         icon:"🌿", tag:"Union · Intersection", color:"#8E44AD", unlocked:true },
+      { id:"triangles",    name:"Triangle Citadel",   icon:"🏰", tag:"Geometry · Pythagoras", color:"#7F8C8D", unlocked:true },
+    ];
+
+    const LEVEL_TITLES = ["Apprentice","Journeyman","Adept","Crafter","Expert","Master","Grand Master"];
+
+    function init() {
+      const u = MC.getUser();
+      MC.updateNavStats();
+
+      // Profile
+      document.getElementById("avatarCircle").textContent = u.avatar;
+      document.getElementById("playerName").textContent = u.username.toUpperCase();
+      const title = LEVEL_TITLES[Math.min(u.level-1, LEVEL_TITLES.length-1)];
+      document.getElementById("playerLevel").textContent = `Level ${u.level} ${title}`;
+      document.getElementById("xpFraction").textContent = `${u.xp}/${u.xpToNext}`;
+      document.getElementById("xpFill").style.width = `${Math.round((u.xp/u.xpToNext)*100)}%`;
+      document.getElementById("statEm").textContent = u.emeralds;
+      document.getElementById("statQz").textContent = u.quizHistory.length;
+      document.getElementById("statAch").textContent = u.badges.length;
+      document.getElementById("statComp").textContent = u.completedTopics.length;
+      document.getElementById("streakNum").textContent = u.streak;
+
+      // Worlds
+      const grid = document.getElementById("worldsGrid");
+      WORLDS.forEach(w => {
+        const prog = u.progress[w.id] || 0;
+        const div = document.createElement("div");
+        div.className = "world-card";
+        div.style.setProperty("--wclr", w.color);
+        div.innerHTML = `
+          <span class="world-icon">${w.icon}</span>
+          <div class="world-name">${w.name}</div>
+          <div class="world-tag">${w.tag}</div>
+          <div class="world-progress"><div class="world-progress-fill" style="width:${prog}%;background:${w.color}"></div></div>
+          <div style="font-size:0.7rem;color:rgba(255,255,255,0.4);margin-top:6px">${prog}% complete</div>
+        `;
+        div.onclick = () => window.location.href = `quiz.html?topic=${w.id}`;
+        grid.appendChild(div);
+      });
+
+      // Leaderboard preview
+      const lb = MC.getLeaderboard().slice(0,5);
+      const lbEl = document.getElementById("lbPreview");
+      lb.forEach((r,i) => {
+        const cls = i===0?"top1":i===1?"top2":i===2?"top3":"";
+        const isMe = r.isMe ? "font-weight:700;color:var(--emerald)":"";
+        lbEl.innerHTML += `<div class="lb-row">
+          <div class="lb-rank ${cls}">#${r.rank}</div>
+          <div class="lb-avatar">${r.avatar}</div>
+          <div class="lb-name" style="${isMe}">${r.username}${r.isMe?" (You)":""}</div>
+          <div class="lb-xp">${r.xp}</div>
+        </div>`;
+      });
+
+      // Recent activity
+      if(u.quizHistory.length > 0) {
+        const act = document.getElementById("recentActivity");
+        act.innerHTML = u.quizHistory.slice(0,5).map(h =>
+          `<div class="lb-row"><div class="lb-avatar">📝</div>
+           <div class="lb-name">${h.topic} Quiz</div>
+           <div style="font-size:0.78rem;color:rgba(255,255,255,0.5)">${h.score}/${h.total} · +${h.xpEarned}XP</div>
+           <div style="font-size:0.72rem;color:rgba(255,255,255,0.3)">${h.date}</div></div>`
+        ).join("");
+      }
+
+      // Mission progress
+      const totalQ = u.quizHistory.reduce((a,h)=>a+h.total,0);
+      document.getElementById("missionProg").textContent = `${Math.min(totalQ,10)} / 10 complete`;
+    }
+
+    init();
+  </script>
+</body>
+</html>

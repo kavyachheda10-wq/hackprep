@@ -1,0 +1,93 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>MathCraft — Leaderboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="dashboard.html" class="nav-brand">⛏️ MathCraft</a>
+    <div class="nav-stats">
+      <div class="stat-chip xp"><span class="icon">⚡</span><span class="nav-xp">0 XP</span></div>
+      <div class="stat-chip em"><span class="icon">💎</span><span class="nav-em">0</span></div>
+      <div class="stat-chip"><span class="nav-lvl">Lv.1</span></div>
+      <a href="profile.html" style="color:rgba(255,255,255,0.6);text-decoration:none;font-size:0.82rem">Profile</a>
+    </div>
+  </nav>
+
+  <div class="page-wrap">
+    <h1 class="section-title" style="font-size:0.85rem;margin-bottom:1.5rem">🏆 Global Leaderboard</h1>
+
+    <!-- Top 3 Podium -->
+    <div style="display:flex;justify-content:center;align-items:flex-end;gap:1.5rem;margin-bottom:2.5rem" id="podium"></div>
+
+    <!-- Table -->
+    <div class="lb-table">
+      <div class="lb-table-row header">
+        <div>Rank</div>
+        <div>Avatar</div>
+        <div>Player</div>
+        <div>Level</div>
+        <div class="hide-mobile">XP</div>
+        <div class="hide-mobile">💎</div>
+      </div>
+      <div id="lbTableBody"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"><span class="toast-icon">🎮</span><span class="toast-text"></span></div>
+
+  <script src="../js/app.js"></script>
+  <script>
+    if(!MC.requireAuth()){}
+    MC.updateNavStats();
+
+    const lb = MC.getLeaderboard();
+    const u  = MC.getUser();
+
+    // Podium (top 3)
+    const podium = document.getElementById("podium");
+    const podiumOrder = [lb[1], lb[0], lb[2]].filter(Boolean);
+    const heights = ["120px","160px","90px"];
+    const medals  = ["🥈","🥇","🥉"];
+    const podColors = ["#7F8C8D","#FFD54F","#FF7043"];
+
+    podiumOrder.forEach((p,i)=>{
+      const isActual = i===1; // center = rank 1
+      const h = heights[i];
+      const div = document.createElement("div");
+      div.style.cssText=`text-align:center;animation:fadeUp 0.6s ${i*0.15}s ease both;`;
+      div.innerHTML=`
+        <div style="font-size:1.5rem;margin-bottom:4px">${p.avatar}</div>
+        <div style="font-family:var(--pixel);font-size:0.55rem;color:${podColors[i]};margin-bottom:8px">${p.username.slice(0,8)}</div>
+        <div style="width:80px;height:${h};background:rgba(255,255,255,0.08);border:2px solid ${podColors[i]};border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px">
+          <div style="font-size:1.5rem">${medals[i]}</div>
+          <div style="font-family:var(--pixel);font-size:0.5rem;color:${podColors[i]}">${p.xp} XP</div>
+        </div>`;
+      podium.appendChild(div);
+    });
+
+    // Table
+    const tbody = document.getElementById("lbTableBody");
+    lb.forEach((r,i)=>{
+      const rankCls = i===0?"top1":i===1?"top2":i===2?"top3":"";
+      const meCls = r.isMe?"me":"";
+      const row = document.createElement("div");
+      row.className = `lb-table-row ${meCls}`;
+      row.style.animationDelay = `${i*0.05}s`;
+      row.innerHTML=`
+        <div class="lb-rank ${rankCls}">#${r.rank}</div>
+        <div class="lb-avatar" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--emerald),var(--diamond));display:flex;align-items:center;justify-content:center">${r.avatar}</div>
+        <div style="font-weight:${r.isMe?700:400}">${r.username}${r.isMe?' 👈':''}</div>
+        <div style="color:var(--emerald);font-size:0.8rem">Lv.${r.level}</div>
+        <div class="lb-xp hide-mobile">${r.xp}</div>
+        <div class="hide-mobile" style="color:var(--gold);font-size:0.8rem">${Math.floor(r.xp/10)} 💎</div>
+      `;
+      tbody.appendChild(row);
+    });
+  </script>
+</body>
+</html>

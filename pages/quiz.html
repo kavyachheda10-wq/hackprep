@@ -1,0 +1,265 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>MathCraft — Quiz</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="dashboard.html" class="nav-brand">⛏️ MathCraft</a>
+    <div class="nav-stats">
+      <div class="stat-chip xp"><span class="icon">⚡</span><span class="nav-xp">0 XP</span></div>
+      <div class="stat-chip em"><span class="icon">💎</span><span class="nav-em">0</span></div>
+      <div class="stat-chip"><span class="nav-lvl">Lv.1</span></div>
+    </div>
+  </nav>
+
+  <!-- Quiz Screen -->
+  <div class="quiz-wrap" id="quizScreen">
+    <div class="quiz-header">
+      <div class="quiz-topic" id="quizTopic">TRIGONOMETRY PEAKS</div>
+      <div class="quiz-progress-bar"><div class="quiz-progress-fill" id="qProgressFill" style="width:0%"></div></div>
+      <div class="timer-ring" id="timerRing">30</div>
+      <div class="hearts" id="heartsRow">
+        <span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span>
+      </div>
+    </div>
+
+    <div class="question-card" id="questionCard">
+      <div class="q-meta">
+        <span class="q-badge" id="qDiff">easy</span>
+        <span class="q-badge xp" id="qXP">+20 XP</span>
+        <span style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-left:auto" id="qNum">Q 1/10</span>
+      </div>
+      <p class="question-text" id="questionText">Loading question...</p>
+    </div>
+
+    <div class="options-grid" id="optionsGrid"></div>
+
+    <div class="explanation-panel" id="explanationPanel">
+      <div class="exp-title" id="expTitle">✅ Correct!</div>
+      <div class="exp-text" id="expText"></div>
+      <div class="exp-tip" id="expTip"></div>
+    </div>
+
+    <div class="quiz-actions">
+      <button class="hint-btn" id="hintBtn" onclick="showHint()">💡 Hint (-5 XP)</button>
+      <button class="btn btn-primary" id="nextBtn" style="display:none" onclick="nextQuestion()">Next Question →</button>
+    </div>
+  </div>
+
+  <!-- Results Screen -->
+  <div class="results-card" id="resultsScreen" style="display:none">
+    <div class="result-icon" id="resultIcon">🏆</div>
+    <h2 class="result-title" id="resultTitle">Quest Complete!</h2>
+    <p class="result-sub" id="resultSub">You defeated the Summit Sage!</p>
+    <div class="result-stats">
+      <div class="result-stat"><div class="val" id="resSCore" style="color:var(--emerald)">0/10</div><div class="lbl">Score</div></div>
+      <div class="result-stat"><div class="val" id="resXP" style="color:var(--diamond)">0</div><div class="lbl">XP Earned</div></div>
+      <div class="result-stat"><div class="val" id="resEm" style="color:var(--gold)">0</div><div class="lbl">Emeralds</div></div>
+      <div class="result-stat"><div class="val" id="resAcc" style="color:var(--lava)">0%</div><div class="lbl">Accuracy</div></div>
+    </div>
+    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+      <a href="dashboard.html" class="btn btn-secondary">🏠 Dashboard</a>
+      <button class="btn btn-primary" onclick="retryQuiz()">🔄 Play Again</button>
+      <a id="bossBtn" href="boss.html" class="btn btn-lava" style="display:none">⚔️ Boss Battle!</a>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"><span class="toast-icon">🎮</span><span class="toast-text"></span></div>
+
+  <script src="../js/app.js"></script>
+  <script src="../js/questions.js"></script>
+  <script>
+    if(!MC.requireAuth()) {}
+
+    const params = new URLSearchParams(location.search);
+    const topic = params.get("topic") || "trigonometry";
+    const WORLD_INFO = {
+      trigonometry: { name:"TRIGONOMETRY PEAKS", boss:"Summit Sage", icon:"🏔️", color:"#FFD54F" },
+      probability:  { name:"PROBABILITY MINES",  boss:"Fortune Keeper", icon:"🔢", color:"#2ECC71" },
+      statistics:   { name:"STATISTICS LAB",     boss:"Data Golem", icon:"📊", color:"#4FC3F7" },
+      equations:    { name:"EQUATION FORGE",     boss:"Forge Master", icon:"⚗️", color:"#FF7043" },
+      sets:         { name:"SETS GROVE",         boss:"Forest Guardian", icon:"🌿", color:"#8E44AD" },
+      triangles:    { name:"TRIANGLE CITADEL",   boss:"Triangle Titan", icon:"🏰", color:"#7F8C8D" },
+    };
+    const info = WORLD_INFO[topic] || WORLD_INFO.trigonometry;
+
+    let questions = getQuestions(topic, 10);
+    let current = 0, score = 0, totalXP = 0, hearts = 3, answered = false;
+    let timer, timeLeft = 30;
+
+    const letters = ["A","B","C","D"];
+
+    function loadQuestion() {
+      if(current >= questions.length) { showResults(); return; }
+      answered = false;
+      document.getElementById("nextBtn").style.display = "none";
+      document.getElementById("explanationPanel").style.display = "none";
+      document.getElementById("hintBtn").disabled = false;
+
+      const q = questions[current];
+      document.getElementById("quizTopic").textContent = info.name;
+      document.getElementById("qNum").textContent = `Q ${current+1}/${questions.length}`;
+      document.getElementById("qDiff").textContent = q.difficulty;
+      document.getElementById("qDiff").className = `q-badge ${q.difficulty}`;
+      document.getElementById("qXP").textContent = `+${q.xp} XP`;
+      document.getElementById("questionText").textContent = q.question;
+      document.getElementById("qProgressFill").style.width = `${(current/questions.length)*100}%`;
+
+      const grid = document.getElementById("optionsGrid");
+      grid.innerHTML = "";
+      q.options.forEach((opt, i) => {
+        const btn = document.createElement("button");
+        btn.className = "option-btn";
+        btn.innerHTML = `<span class="option-letter">${letters[i]}</span>${opt}`;
+        btn.onclick = () => selectAnswer(i, btn);
+        grid.appendChild(btn);
+      });
+
+      startTimer();
+    }
+
+    function startTimer() {
+      clearInterval(timer);
+      timeLeft = 30;
+      const ring = document.getElementById("timerRing");
+      ring.textContent = timeLeft;
+      ring.className = "timer-ring";
+      timer = setInterval(() => {
+        timeLeft--;
+        ring.textContent = timeLeft;
+        if(timeLeft <= 10) ring.className = "timer-ring danger";
+        if(timeLeft <= 0) {
+          clearInterval(timer);
+          if(!answered) timeUp();
+        }
+      }, 1000);
+    }
+
+    function timeUp() {
+      answered = true;
+      const q = questions[current];
+      const btns = document.querySelectorAll(".option-btn");
+      btns.forEach((b,i) => { b.disabled=true; if(i===q.answer) b.classList.add("correct"); });
+      loseHeart();
+      showExplanation(false, q);
+    }
+
+    function selectAnswer(idx, btn) {
+      if(answered) return;
+      answered = true;
+      clearInterval(timer);
+      const q = questions[current];
+      const btns = document.querySelectorAll(".option-btn");
+      btns.forEach(b => b.disabled = true);
+
+      if(idx === q.answer) {
+        btn.classList.add("correct");
+        score++;
+        totalXP += q.xp;
+        MC.addXP(q.xp);
+        MC.addEmeralds(Math.floor(q.xp/10));
+        MC.showXPPopup(q.xp);
+        MC.showToast(`✅ Correct! +${q.xp} XP`, "green");
+        showExplanation(true, q);
+      } else {
+        btn.classList.add("wrong");
+        btns[q.answer].classList.add("correct");
+        loseHeart();
+        showExplanation(false, q);
+      }
+
+      document.getElementById("nextBtn").style.display = "inline-flex";
+    }
+
+    function loseHeart() {
+      hearts--;
+      const h = document.querySelectorAll(".heart");
+      if(h[hearts]) h[hearts].classList.add("lost");
+      MC.showToast("❌ Wrong answer!", "red");
+      if(hearts <= 0) {
+        setTimeout(() => { MC.showToast("💔 Out of hearts! Ending quiz...", "red"); setTimeout(showResults, 1500); }, 500);
+      }
+    }
+
+    function showExplanation(correct, q) {
+      const panel = document.getElementById("explanationPanel");
+      panel.style.display = "block";
+      panel.className = `explanation-panel ${correct?"":"wrong-panel"}`;
+      document.getElementById("expTitle").textContent = correct ? "✅ Correct!" : "❌ Not quite...";
+      document.getElementById("expText").textContent = q.explanation;
+      document.getElementById("expTip").textContent = `💡 Tip: ${q.tip}`;
+    }
+
+    function showHint() {
+      const q = questions[current];
+      const correct = q.options[q.answer];
+      MC.showToast(`💡 Hint: The answer starts with "${correct[0]}"`, "blue");
+      document.getElementById("hintBtn").disabled = true;
+    }
+
+    function nextQuestion() {
+      current++;
+      loadQuestion();
+    }
+
+    function showResults() {
+      clearInterval(timer);
+      document.getElementById("quizScreen").style.display = "none";
+      document.getElementById("resultsScreen").style.display = "block";
+
+      const total = questions.length;
+      const acc = Math.round((score/total)*100);
+      const emeralds = Math.floor(totalXP/10);
+
+      document.getElementById("resSCore").textContent = `${score}/${total}`;
+      document.getElementById("resXP").textContent = `+${totalXP}`;
+      document.getElementById("resEm").textContent = `+${emeralds}`;
+      document.getElementById("resAcc").textContent = `${acc}%`;
+
+      let icon="🏆", title="Quest Complete!", sub="";
+      if(acc===100){ icon="⭐"; title="Perfect Score!"; sub="Flawless victory! You are a true master!"; MC.confetti(); }
+      else if(acc>=70){ icon="🏆"; title="Quest Complete!"; sub=`You defeated the ${info.boss}!`; }
+      else { icon="💀"; title="Try Again!"; sub="The boss was too strong this time..."; }
+
+      document.getElementById("resultIcon").textContent = icon;
+      document.getElementById("resultTitle").textContent = title;
+      document.getElementById("resultSub").textContent = sub;
+
+      // Save progress
+      MC.addProgress(topic, Math.round(acc/5));
+      MC.saveQuizResult(topic, score, total, totalXP);
+      MC.updateNavStats();
+
+      // Achievements
+      if(score===total) MC.unlockAchievement("perfect_quiz","Perfect Quiz","⭐");
+      if(MC.getUser().quizHistory.length===1) MC.unlockAchievement("first_quiz","First Quest","📝");
+
+      // Show boss button if score >= 7
+      if(score >= 7) {
+        document.getElementById("bossBtn").href = `boss.html?topic=${topic}`;
+        document.getElementById("bossBtn").style.display = "inline-flex";
+      }
+
+      if(totalXP > 0) MC.showToast(`🎉 Quiz done! +${totalXP} XP earned`, "gold");
+    }
+
+    function retryQuiz() {
+      questions = getQuestions(topic, 10);
+      current=0; score=0; totalXP=0; hearts=3; answered=false;
+      document.querySelectorAll(".heart").forEach(h=>h.classList.remove("lost"));
+      document.getElementById("quizScreen").style.display="block";
+      document.getElementById("resultsScreen").style.display="none";
+      loadQuestion();
+    }
+
+    // Start
+    MC.updateNavStats();
+    loadQuestion();
+  </script>
+</body>
+</html>

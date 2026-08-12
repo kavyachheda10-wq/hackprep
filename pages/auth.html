@@ -1,0 +1,117 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>MathCraft — Login / Sign Up</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div style="font-size:2.5rem">⛏️</div>
+      <h1>MathCraft</h1>
+      <p>Mine Knowledge. Craft Your Future.</p>
+    </div>
+
+    <div class="tab-switcher">
+      <button class="tab-btn active" id="tab-login" onclick="switchTab('login')">Login</button>
+      <button class="tab-btn" id="tab-signup" onclick="switchTab('signup')">Sign Up</button>
+    </div>
+
+    <!-- Login Form -->
+    <form id="login-form" onsubmit="doLogin(event)">
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input type="text" id="l-user" class="form-input" placeholder="Enter your username" required/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" id="l-pass" class="form-input" placeholder="Enter your password" required/>
+      </div>
+      <button type="submit" class="auth-submit">⚔️ Enter the World</button>
+      <div class="auth-error" id="login-error"></div>
+    </form>
+
+    <!-- Signup Form -->
+    <form id="signup-form" style="display:none" onsubmit="doSignup(event)">
+      <div class="form-group">
+        <label class="form-label">Choose Username</label>
+        <input type="text" id="s-user" class="form-input" placeholder="Your hero name" required minlength="3"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" id="s-email" class="form-input" placeholder="your@email.com" required/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" id="s-pass" class="form-input" placeholder="Create a password" required minlength="6"/>
+      </div>
+      <button type="submit" class="auth-submit">🌟 Begin My Adventure</button>
+      <div class="auth-error" id="signup-error"></div>
+    </form>
+
+    <div class="divider">— or —</div>
+    <button class="google-btn" onclick="guestLogin()">🎮 Play as Guest</button>
+  </div>
+
+  <script src="../js/app.js"></script>
+  <script>
+    // Check if coming from landing with ?mode=login
+    if(new URLSearchParams(location.search).get("mode")==="login") switchTab("login");
+
+    // If already logged in, redirect
+    if(MC.isLoggedIn()) window.location.href="dashboard.html";
+
+    function switchTab(tab) {
+      document.getElementById("login-form").style.display = tab==="login"?"block":"none";
+      document.getElementById("signup-form").style.display= tab==="signup"?"block":"none";
+      document.getElementById("tab-login").classList.toggle("active", tab==="login");
+      document.getElementById("tab-signup").classList.toggle("active", tab==="signup");
+    }
+
+    function doLogin(e) {
+      e.preventDefault();
+      const username = document.getElementById("l-user").value.trim();
+      const pass = document.getElementById("l-pass").value;
+      // Check stored accounts
+      const accounts = JSON.parse(localStorage.getItem("mc_accounts")||"{}");
+      if(accounts[username] && accounts[username].password === btoa(pass)) {
+        MC.saveUser(accounts[username].profile);
+        window.location.href = "dashboard.html";
+      } else {
+        showError("login-error", "Invalid username or password.");
+      }
+    }
+
+    function doSignup(e) {
+      e.preventDefault();
+      const username = document.getElementById("s-user").value.trim();
+      const pass = document.getElementById("s-pass").value;
+      const accounts = JSON.parse(localStorage.getItem("mc_accounts")||"{}");
+      if(accounts[username]) { showError("signup-error","Username already taken!"); return; }
+      const profile = MC.defaultUser(username);
+      accounts[username] = { password: btoa(pass), profile };
+      localStorage.setItem("mc_accounts", JSON.stringify(accounts));
+      MC.saveUser(profile);
+      // First achievement
+      MC.unlockAchievement("first_login","Welcome Hero","🌟");
+      window.location.href = "dashboard.html";
+    }
+
+    function guestLogin() {
+      const g = MC.defaultUser("GuestHero_" + Math.floor(Math.random()*9000+1000));
+      g.isGuest = true;
+      MC.saveUser(g);
+      window.location.href = "dashboard.html";
+    }
+
+    function showError(id, msg) {
+      const el = document.getElementById(id);
+      el.textContent = msg; el.style.display = "block";
+      setTimeout(()=>el.style.display="none", 4000);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,238 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>MathCraft — Boss Battle</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <style>
+    .shake { animation: shake 0.4s ease; }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+    .boss-flash { animation: bossHit 0.4s ease; }
+    @keyframes bossHit { 0%,100%{filter:none} 50%{filter:brightness(3) saturate(0)} }
+    .dmg-num {
+      position:fixed; font-family:var(--pixel); font-size:1.5rem; color:var(--lava);
+      pointer-events:none; animation:dmgFloat 1s ease forwards; z-index:999;
+    }
+    @keyframes dmgFloat { 0%{transform:translateY(0);opacity:1} 100%{transform:translateY(-80px);opacity:0} }
+    .heal-num { color:var(--emerald)!important; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="dashboard.html" class="nav-brand">⛏️ MathCraft</a>
+    <div class="nav-stats">
+      <div class="stat-chip xp"><span class="icon">⚡</span><span class="nav-xp">0 XP</span></div>
+      <div class="stat-chip em"><span class="icon">💎</span><span class="nav-em">0</span></div>
+    </div>
+  </nav>
+
+  <div class="boss-area" id="battleScreen">
+    <div class="boss-header">
+      <div class="boss-name" id="bossName">SUMMIT SAGE</div>
+      <span class="boss-sprite" id="bossSprite">🧙‍♂️</span>
+      <div class="hp-bar-wrap">
+        <div class="hp-label"><span>Boss HP</span><span id="bossHPNum">500 / 500</span></div>
+        <div class="hp-bar-bg"><div class="hp-bar-fill" id="bossHPFill" style="width:100%"></div></div>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:1rem 0 0.5rem">
+      <span style="font-family:var(--pixel);font-size:0.55rem;color:rgba(255,255,255,0.5)">YOUR HP</span>
+      <div class="hearts" id="playerHearts">
+        <span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span>
+      </div>
+    </div>
+
+    <div class="question-card" id="bossQuestion">
+      <div class="q-meta">
+        <span class="q-badge medium" id="bQDiff">medium</span>
+        <span class="q-badge xp" id="bQXP">+40 XP</span>
+      </div>
+      <p class="question-text" id="bQText">Prepare for battle!</p>
+    </div>
+
+    <div class="options-grid" id="bossOptions"></div>
+
+    <div class="explanation-panel" id="bossExp" style="margin-top:1rem">
+      <div class="exp-title" id="bExpTitle">✅ Hit!</div>
+      <div class="exp-text" id="bExpText"></div>
+      <div class="exp-tip" id="bExpTip"></div>
+    </div>
+
+    <div style="text-align:right;margin-top:1rem">
+      <button class="btn btn-primary" id="bNextBtn" style="display:none" onclick="nextBossQ()">Attack Again →</button>
+    </div>
+  </div>
+
+  <!-- Victory Screen -->
+  <div id="victoryScreen" style="display:none;text-align:center;padding:3rem 2rem">
+    <div style="font-size:5rem;margin-bottom:1rem">🏆</div>
+    <h2 style="font-family:var(--pixel);font-size:1.2rem;color:var(--gold);margin-bottom:1rem" id="victoryTitle">BOSS DEFEATED!</h2>
+    <p style="color:rgba(255,255,255,0.6);margin-bottom:2rem" id="victoryMsg">You are a true Master Crafter!</p>
+    <div style="font-family:var(--pixel);font-size:1.5rem;color:var(--emerald);margin-bottom:2rem" id="victoryXP">+300 XP</div>
+    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+      <a href="dashboard.html" class="btn btn-primary">🏠 Return Home</a>
+      <a href="leaderboard.html" class="btn btn-gold">🏆 Leaderboard</a>
+    </div>
+  </div>
+
+  <!-- Defeat Screen -->
+  <div id="defeatScreen" style="display:none;text-align:center;padding:3rem 2rem">
+    <div style="font-size:5rem;margin-bottom:1rem">💀</div>
+    <h2 style="font-family:var(--pixel);font-size:1rem;color:var(--lava);margin-bottom:1rem">YOU FELL IN BATTLE</h2>
+    <p style="color:rgba(255,255,255,0.5);margin-bottom:2rem">Train harder and return stronger!</p>
+    <div style="display:flex;gap:1rem;justify-content:center">
+      <a href="dashboard.html" class="btn btn-secondary">🏠 Dashboard</a>
+      <button class="btn btn-lava" onclick="restartBoss()">⚔️ Try Again</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"><span class="toast-icon">🎮</span><span class="toast-text"></span></div>
+
+  <script src="../js/app.js"></script>
+  <script src="../js/questions.js"></script>
+  <script>
+    if(!MC.requireAuth()){}
+
+    const params = new URLSearchParams(location.search);
+    const topic = params.get("topic") || "trigonometry";
+
+    const BOSSES = {
+      trigonometry:{ name:"SUMMIT SAGE",    sprite:"🧙‍♂️", hp:500, dmg:60, reward:300 },
+      probability: { name:"FORTUNE KEEPER", sprite:"🎲",   hp:450, dmg:50, reward:280 },
+      statistics:  { name:"DATA GOLEM",     sprite:"🤖",   hp:480, dmg:55, reward:290 },
+      equations:   { name:"FORGE MASTER",   sprite:"⚒️",   hp:520, dmg:65, reward:320 },
+      sets:        { name:"FOREST GUARDIAN",sprite:"🌲",   hp:400, dmg:45, reward:260 },
+      triangles:   { name:"TRIANGLE TITAN", sprite:"🛡️",  hp:550, dmg:70, reward:350 },
+    };
+
+    const boss = BOSSES[topic] || BOSSES.trigonometry;
+    let bossHP = boss.hp, maxHP = boss.hp;
+    let playerHP = 5, answered = false;
+    let questions = getQuestions(topic, 15);
+    let qIdx = 0;
+
+    const letters = ["A","B","C","D"];
+
+    function init(){
+      MC.updateNavStats();
+      document.getElementById("bossName").textContent = boss.name;
+      document.getElementById("bossSprite").textContent = boss.sprite;
+      loadBossQ();
+    }
+
+    function loadBossQ(){
+      if(qIdx >= questions.length) questions = getQuestions(topic,15); // loop
+      answered = false;
+      document.getElementById("bNextBtn").style.display = "none";
+      document.getElementById("bossExp").style.display = "none";
+
+      const q = questions[qIdx++];
+      document.getElementById("bQDiff").textContent = q.difficulty;
+      document.getElementById("bQDiff").className = `q-badge ${q.difficulty}`;
+      document.getElementById("bQXP").textContent = `+${q.xp} XP`;
+      document.getElementById("bQText").textContent = q.question;
+
+      const grid = document.getElementById("bossOptions");
+      grid.innerHTML = "";
+      q.options.forEach((opt,i)=>{
+        const btn = document.createElement("button");
+        btn.className = "option-btn";
+        btn.innerHTML = `<span class="option-letter">${letters[i]}</span>${opt}`;
+        btn.onclick = ()=>selectBossAnswer(i,btn,q);
+        grid.appendChild(btn);
+      });
+    }
+
+    function selectBossAnswer(idx,btn,q){
+      if(answered)return;
+      answered=true;
+      const btns = document.querySelectorAll(".option-btn");
+      btns.forEach(b=>b.disabled=true);
+
+      if(idx===q.answer){
+        btn.classList.add("correct");
+        const dmg = Math.floor(boss.hp*0.12 + Math.random()*30);
+        bossHP = Math.max(0,bossHP-dmg);
+        updateBossHP();
+        document.getElementById("bossSprite").classList.add("boss-flash");
+        setTimeout(()=>document.getElementById("bossSprite").classList.remove("boss-flash"),400);
+        showDmgNum(`-${dmg}`, "lava");
+        MC.addXP(q.xp); MC.addEmeralds(5);
+        showBossExp(true,q);
+        MC.showToast(`⚔️ Hit! Dealt ${dmg} damage!`, "green");
+        if(bossHP<=0){ setTimeout(victory,1000); return; }
+      } else {
+        btn.classList.add("wrong");
+        btns[q.answer].classList.add("correct");
+        playerHP--;
+        const hearts = document.querySelectorAll(".heart");
+        if(hearts[playerHP]) hearts[playerHP].classList.add("lost");
+        showBossExp(false,q);
+        MC.showToast(`💥 Boss attacked! -1 Heart`, "red");
+        document.getElementById("battleScreen").classList.add("shake");
+        setTimeout(()=>document.getElementById("battleScreen").classList.remove("shake"),400);
+        if(playerHP<=0){ setTimeout(defeat,800); return; }
+      }
+      document.getElementById("bNextBtn").style.display="inline-flex";
+    }
+
+    function showDmgNum(text, cls){
+      const el = document.createElement("div");
+      el.className = `dmg-num ${cls==="green"?"heal-num":""}`;
+      el.textContent = text;
+      el.style.cssText=`left:${40+Math.random()*20}%;top:30%;`;
+      document.body.appendChild(el);
+      setTimeout(()=>el.remove(),1000);
+    }
+
+    function updateBossHP(){
+      const pct = (bossHP/maxHP)*100;
+      document.getElementById("bossHPFill").style.width = pct+"%";
+      document.getElementById("bossHPNum").textContent = `${Math.max(0,bossHP)} / ${maxHP}`;
+      if(pct<30) document.getElementById("bossHPFill").style.background="var(--lava)";
+    }
+
+    function showBossExp(correct,q){
+      const p=document.getElementById("bossExp");
+      p.style.display="block";
+      p.className=`explanation-panel ${correct?"":"wrong-panel"}`;
+      document.getElementById("bExpTitle").textContent = correct?"⚔️ Hit!":"🛡️ Blocked!";
+      document.getElementById("bExpText").textContent = q.explanation;
+      document.getElementById("bExpTip").textContent = `💡 ${q.tip}`;
+    }
+
+    function nextBossQ(){ loadBossQ(); }
+
+    function victory(){
+      MC.addXP(boss.reward);
+      MC.addEmeralds(50);
+      const u = MC.getUser();
+      if(!u.bossDefeated.includes(topic)){ u.bossDefeated.push(topic); MC.saveUser(u); }
+      MC.unlockAchievement(`boss_${topic}`, `${boss.name} Defeated`, boss.sprite);
+      MC.confetti();
+      document.getElementById("battleScreen").style.display="none";
+      document.getElementById("victoryScreen").style.display="block";
+      document.getElementById("victoryXP").textContent = `+${boss.reward} XP Earned!`;
+    }
+
+    function defeat(){
+      document.getElementById("battleScreen").style.display="none";
+      document.getElementById("defeatScreen").style.display="block";
+    }
+
+    function restartBoss(){
+      bossHP=maxHP; playerHP=5; qIdx=0; answered=false;
+      document.querySelectorAll(".heart").forEach(h=>h.classList.remove("lost"));
+      updateBossHP();
+      document.getElementById("battleScreen").style.display="block";
+      document.getElementById("defeatScreen").style.display="none";
+      loadBossQ();
+    }
+
+    init();
+  </script>
+</body>
+</html>
