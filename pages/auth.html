@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
@@ -23,14 +23,14 @@
     <!-- Login Form -->
     <form id="login-form" onsubmit="doLogin(event)">
       <div class="form-group">
-        <label class="form-label">Username</label>
-        <input type="text" id="l-user" class="form-input" placeholder="Enter your username" required/>
+        <label class="form-label">Email</label>
+        <input type="email" id="l-email" class="form-input" placeholder="Enter your email" required/>
       </div>
       <div class="form-group">
         <label class="form-label">Password</label>
         <input type="password" id="l-pass" class="form-input" placeholder="Enter your password" required/>
       </div>
-      <button type="submit" class="auth-submit">⚔️ Enter the World</button>
+      <button type="submit" class="auth-submit" id="login-btn">⚔️ Enter the World</button>
       <div class="auth-error" id="login-error"></div>
     </form>
 
@@ -46,9 +46,9 @@
       </div>
       <div class="form-group">
         <label class="form-label">Password</label>
-        <input type="password" id="s-pass" class="form-input" placeholder="Create a password" required minlength="6"/>
+        <input type="password" id="s-pass" class="form-input" placeholder="Create a password (min 6 chars)" required minlength="6"/>
       </div>
-      <button type="submit" class="auth-submit">🌟 Begin My Adventure</button>
+      <button type="submit" class="auth-submit" id="signup-btn">🌟 Begin My Adventure</button>
       <div class="auth-error" id="signup-error"></div>
     </form>
 
@@ -56,13 +56,17 @@
     <button class="google-btn" onclick="guestLogin()">🎮 Play as Guest</button>
   </div>
 
+  <script src="../js/config.js"></script>
+  <script src="../js/supabase.js"></script>
   <script src="../js/app.js"></script>
   <script>
+    // If already logged in, redirect
+    if(MC.isLoggedIn()) window.location.href="dashboard.html";
+
     // Check if coming from landing with ?mode=login
     if(new URLSearchParams(location.search).get("mode")==="login") switchTab("login");
 
-    // If already logged in, redirect
-    if(MC.isLoggedIn()) window.location.href="dashboard.html";
+    const useSupabase = () => window.SupaDB != null;
 
     function switchTab(tab) {
       document.getElementById("login-form").style.display = tab==="login"?"block":"none";
@@ -71,33 +75,120 @@
       document.getElementById("tab-signup").classList.toggle("active", tab==="signup");
     }
 
-    function doLogin(e) {
-      e.preventDefault();
-      const username = document.getElementById("l-user").value.trim();
-      const pass = document.getElementById("l-pass").value;
-      // Check stored accounts
-      const accounts = JSON.parse(localStorage.getItem("mc_accounts")||"{}");
-      if(accounts[username] && accounts[username].password === btoa(pass)) {
-        MC.saveUser(accounts[username].profile);
-        window.location.href = "dashboard.html";
+    function setLoading(btnId, loading) {
+      const btn = document.getElementById(btnId);
+      if (loading) {
+        btn.disabled = true;
+        btn._origText = btn.textContent;
+        btn.textContent = "⏳ Loading...";
+        btn.style.opacity = "0.6";
       } else {
-        showError("login-error", "Invalid username or password.");
+        btn.disabled = false;
+        btn.textContent = btn._origText || btn.textContent;
+        btn.style.opacity = "1";
       }
     }
 
-    function doSignup(e) {
+    async function doLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById("l-email").value.trim();
+      const pass = document.getElementById("l-pass").value;
+
+      if (useSupabase()) {
+        // ── Supabase Login ──
+        setLoading("login-btn", true);
+        try {
+          const { session, user } = await window.SupaDB.signIn(email, pass);
+          // Load full profile from Supabase
+          const profile = await window.SupaDB.getProfile(user.id);
+          const progress = await window.SupaDB.getProgress(user.id);
+          const quizHistory = await window.SupaDB.getQuizHistory(user.id);
+          const badges = await window.SupaDB.getBadges(user.id);
+
+          const u = {
+            username: profile.username || "Hero",
+            avatar: profile.avatar || "🧙",
+            level: profile.level || 1,
+            xp: profile.xp || 0,
+            xpToNext: profile.xp_to_next || 500,
+            emeralds: profile.emeralds || 0,
+            streak: profile.streak || 1,
+            lastLogin: new Date().toDateString(),
+            progress: {
+              trigonometry: 0, probability: 0, statistics: 0,
+              equations: 0, sets: 0, triangles: 0,
+              ...progress
+            },
+            completedTopics: Object.entries(progress).filter(([,v]) => v >= 100).map(([k]) => k),
+            bossDefeated: [],
+            achievements: badges.map(b => b.badge_id),
+            quizHistory,
+            badges: badges.map(b => ({ id: b.badge_id, name: b.name, icon: b.icon, earnedAt: b.earned_at })),
+            supaId: user.id,
+            isGuest: false
+          };
+          MC.saveUser(u);
+          window.location.href = "dashboard.html";
+        } catch (err) {
+          showError("login-error", err.message || "Login failed. Check your credentials.");
+          setLoading("login-btn", false);
+        }
+      } else {
+        // ── localStorage fallback ──
+        const accounts = JSON.parse(localStorage.getItem("mc_accounts")||"{}");
+        // Try matching by email (stored as key)
+        const key = Object.keys(accounts).find(k => accounts[k].email === email);
+        if(key && accounts[key].password === btoa(pass)) {
+          MC.saveUser(accounts[key].profile);
+          window.location.href = "dashboard.html";
+        } else {
+          showError("login-error", "Invalid email or password.");
+        }
+      }
+    }
+
+    async function doSignup(e) {
       e.preventDefault();
       const username = document.getElementById("s-user").value.trim();
+      const email = document.getElementById("s-email").value.trim();
       const pass = document.getElementById("s-pass").value;
-      const accounts = JSON.parse(localStorage.getItem("mc_accounts")||"{}");
-      if(accounts[username]) { showError("signup-error","Username already taken!"); return; }
-      const profile = MC.defaultUser(username);
-      accounts[username] = { password: btoa(pass), profile };
-      localStorage.setItem("mc_accounts", JSON.stringify(accounts));
-      MC.saveUser(profile);
-      // First achievement
-      MC.unlockAchievement("first_login","Welcome Hero","🌟");
-      window.location.href = "dashboard.html";
+
+      if (useSupabase()) {
+        // ── Supabase Signup ──
+        setLoading("signup-btn", true);
+        try {
+          const { user, session } = await window.SupaDB.signUp(email, pass, username);
+          if (!session) {
+            // Some Supabase configs require email confirmation
+            showError("signup-error", "✅ Check your email to confirm your account, then log in!");
+            setLoading("signup-btn", false);
+            switchTab("login");
+            return;
+          }
+          // Auto-logged in — build profile
+          const profile = MC.defaultUser(username);
+          profile.supaId = user.id;
+          MC.saveUser(profile);
+          MC.unlockAchievement("first_login","Welcome Hero","🌟");
+          window.location.href = "dashboard.html";
+        } catch (err) {
+          let msg = err.message || "Signup failed.";
+          if (msg.includes("already registered")) msg = "This email is already registered. Try logging in!";
+          if (msg.includes("weak")) msg = "Password too weak — use at least 6 characters.";
+          showError("signup-error", msg);
+          setLoading("signup-btn", false);
+        }
+      } else {
+        // ── localStorage fallback ──
+        const accounts = JSON.parse(localStorage.getItem("mc_accounts")||"{}");
+        if(accounts[username]) { showError("signup-error","Username already taken!"); return; }
+        const profile = MC.defaultUser(username);
+        accounts[username] = { password: btoa(pass), email, profile };
+        localStorage.setItem("mc_accounts", JSON.stringify(accounts));
+        MC.saveUser(profile);
+        MC.unlockAchievement("first_login","Welcome Hero","🌟");
+        window.location.href = "dashboard.html";
+      }
     }
 
     function guestLogin() {
@@ -110,7 +201,7 @@
     function showError(id, msg) {
       const el = document.getElementById(id);
       el.textContent = msg; el.style.display = "block";
-      setTimeout(()=>el.style.display="none", 4000);
+      setTimeout(()=>el.style.display="none", 5000);
     }
   </script>
 </body>
