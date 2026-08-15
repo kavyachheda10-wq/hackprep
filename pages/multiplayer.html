@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>MathCraft — Multiplayer Arena</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body class="dashboard-page">
+  <!-- Fullscreen Ambient Background -->
+  <div class="dashboard-bg"></div>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="dashboard.html" class="nav-brand">⛏️ MathCraft</a>
+    <div class="nav-links" style="display:flex;align-items:center;gap:1rem;">
+      <a href="dashboard.html" style="color:rgba(255,255,255,0.7);text-decoration:none;font-size:0.82rem;font-weight:500;">Dashboard</a>
+      <a href="multiplayer.html" style="color:var(--gold);text-decoration:none;font-size:0.82rem;font-weight:700;">⚔️ Multiplayer</a>
+      <a href="leaderboard.html" style="color:rgba(255,255,255,0.7);text-decoration:none;font-size:0.82rem;font-weight:500;">Leaderboard</a>
+      <a href="profile.html" style="color:rgba(255,255,255,0.7);text-decoration:none;font-size:0.82rem;font-weight:500;">Profile</a>
+    </div>
+    <div class="nav-stats">
+      <div class="stat-chip xp"><span class="icon">⚡</span><span class="nav-xp">0 XP</span></div>
+      <div class="stat-chip em"><span class="icon">💎</span><span class="nav-em">0</span></div>
+      <div class="stat-chip"><span class="nav-lvl">Lv.1</span></div>
+    </div>
+  </nav>
+
+  <div class="page-wrap">
+    
+    <!-- LOBBY SCREEN -->
+    <div id="mpLobby" class="mp-lobby-wrap">
+      <div class="mp-hero-header">
+        <h1 class="mp-title">⚔️ MULTIPLAYER ARENA 🤝</h1>
+        <p class="mp-subtitle">Battle 1v1 in real-time math duels or team up with a study buddy to conquer quests together!</p>
+      </div>
+
+      <!-- Mode Selection Cards -->
+      <div class="mp-modes-grid">
+        <!-- 1v1 Versus Duel Card -->
+        <div class="mp-mode-card duel-card" onclick="selectGameMode('duel')">
+          <div class="mode-badge pvp-badge">⚡ 1v1 PVP DUEL</div>
+          <div class="mode-icon">⚔️</div>
+          <h3 class="mode-title">Versus Math Duel</h3>
+          <p class="mode-desc">Compete head-to-head on the same questions in real time. Fastest correct answers deal damage. Knockout your opponent!</p>
+          <div class="mode-tags">
+            <span class="m-tag">Live HP Clash</span>
+            <span class="m-tag">Speed Bonuses</span>
+            <span class="m-tag">+100 XP</span>
+          </div>
+          <button class="btn btn-lava mode-btn" type="button">Enter 1v1 Arena →</button>
+        </div>
+
+        <!-- Co-Op Study Duo Card -->
+        <div class="mp-mode-card coop-card" onclick="selectGameMode('coop')">
+          <div class="mode-badge coop-badge">🤝 DUO CO-OP</div>
+          <div class="mode-icon">🧙‍♂️🧝‍♀️</div>
+          <h3 class="mode-title">Study Buddy Quest</h3>
+          <p class="mode-desc">Team up with a friend to tackle tricky questions. Build synergy combos, review tips together, and share double XP rewards!</p>
+          <div class="mode-tags">
+            <span class="m-tag">Shared Combo</span>
+            <span class="m-tag">Live Hints & Tips</span>
+            <span class="m-tag">2x Team XP</span>
+          </div>
+          <button class="btn btn-primary mode-btn" type="button">Start Duo Study →</button>
+        </div>
+
+        <!-- Same-Device Split-Screen Pass & Play -->
+        <div class="mp-mode-card local-card" onclick="selectGameMode('local')">
+          <div class="mode-badge local-badge">🎮 SAME DEVICE</div>
+          <div class="mode-icon">🖥️</div>
+          <h3 class="mode-title">Local Split-Screen</h3>
+          <p class="mode-desc">Play right here on this screen! Two players take turns or race using Player 1 (A/S/D/F) vs Player 2 (H/J/K/L) controls.</p>
+          <div class="mode-tags">
+            <span class="m-tag">Instant Play</span>
+            <span class="m-tag">No Code Needed</span>
+            <span class="m-tag">Party Mode</span>
+          </div>
+          <button class="btn btn-gold mode-btn" type="button">Play Local 2P →</button>
+        </div>
+      </div>
+
+      <!-- Room Setup Panel (Appears after choosing online mode) -->
+      <div id="roomSetupPanel" class="mp-room-panel" style="display:none;">
+        <div class="room-panel-header">
+          <h2 id="roomPanelTitle" class="section-title">⚔️ Create or Join Room</h2>
+          <button class="btn-close-room" onclick="closeRoomSetup()" aria-label="Back">✕</button>
+        </div>
+
+        <!-- Topic selection for host -->
+        <div class="room-topic-select" id="roomTopicWrap">
+          <label class="room-label">Select Math Realm:</label>
+          <div class="topic-chips" id="topicChips">
+            <button class="topic-chip active" data-topic="trigonometry" onclick="setRoomTopic('trigonometry')">🏔️ Trigonometry</button>
+            <button class="topic-chip" data-topic="probability" onclick="setRoomTopic('probability')">🔢 Probability</button>
+            <button class="topic-chip" data-topic="statistics" onclick="setRoomTopic('statistics')">📊 Statistics</button>
+            <button class="topic-chip" data-topic="equations" onclick="setRoomTopic('equations')">⚗️ Equations</button>
+            <button class="topic-chip" data-topic="sets" onclick="setRoomTopic('sets')">🌿 Sets Grove</button>
+            <button class="topic-chip" data-topic="triangles" onclick="setRoomTopic('triangles')">🏰 Triangles</button>
+          </div>
+        </div>
+
+        <div class="room-actions-split">
+          <!-- Create Room -->
+          <div class="room-box host-box">
+            <h3>👑 Host a Room</h3>
+            <p style="font-size:0.8rem;color:rgba(255,255,255,0.6);margin-bottom:1rem;">Generate a secret code and share with your friend to connect instantly.</p>
+            <button class="btn btn-primary btn-block" onclick="createRoom()">Create New Room ✨</button>
+            
+            <div id="hostCodeDisplay" class="code-result" style="display:none;">
+              <span class="code-lbl">YOUR ROOM CODE:</span>
+              <div class="code-val-wrap">
+                <span class="code-val" id="roomCodeText">MC-9999</span>
+                <button class="btn btn-secondary btn-sm" onclick="copyRoomLink()">📋 Copy Link</button>
+              </div>
+              <div class="waiting-pulse">
+                <div class="spinner-ring"></div>
+                <span id="waitingStatusText">Waiting for Player 2 to join...</span>
+              </div>
+              <button class="btn btn-gold btn-sm" id="forceStartBtn" style="margin-top:0.75rem;display:none;" onclick="startOnlineMatch()">Start Match Now 🚀</button>
+            </div>
+          </div>
+
+          <!-- Join Room -->
+          <div class="room-box join-box">
+            <h3>🚪 Join Friend's Room</h3>
+            <p style="font-size:0.8rem;color:rgba(255,255,255,0.6);margin-bottom:1rem;">Enter the 4-digit code provided by your study partner or opponent.</p>
+            <div class="join-input-wrap">
+              <input type="text" id="joinCodeInput" class="room-input" placeholder="e.g. 7482" maxlength="8" autocomplete="off"/>
+              <button class="btn btn-lava" onclick="joinRoomByInput()">Join Room →</button>
+            </div>
+            <div id="joinStatusMsg" style="font-size:0.8rem;margin-top:0.6rem;color:var(--diamond);"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ==============================================
+         ACTIVE BATTLE / CO-OP QUEST ARENA SCREEN
+         ============================================== -->
+    <div id="mpArena" class="mp-arena-wrap" style="display:none;">
+      
+      <!-- Real-Time Head-to-Head Topbar -->
+      <div class="mp-topbar" id="mpTopbar">
+        <!-- Player 1 Profile Card -->
+        <div class="player-hud hud-p1" id="p1Hud">
+          <div class="hud-avatar-box">
+            <span class="hud-avatar" id="p1Avatar">🧙</span>
+            <div class="hud-role-badge">P1</div>
+          </div>
+          <div class="hud-info">
+            <div class="hud-name" id="p1Name">HERO</div>
+            <div class="hud-hp-bar">
+              <div class="hud-hp-fill" id="p1HpFill" style="width:100%;"></div>
+            </div>
+            <div class="hud-meta"><span id="p1Score">0 pts</span> • Streak: <span id="p1Streak">🔥0</span></div>
+          </div>
+        </div>
+
+        <!-- Center Match Stats / Synergy Status -->
+        <div class="center-vs-box">
+          <div class="vs-badge" id="arenaCenterBadge">VS</div>
+          <div class="arena-timer-ring" id="arenaTimer">25</div>
+          <div class="q-progress-tag" id="arenaQNum">Q 1/8</div>
+        </div>
+
+        <!-- Player 2 / Opponent Profile Card -->
+        <div class="player-hud hud-p2" id="p2Hud">
+          <div class="hud-info" style="text-align:right;">
+            <div class="hud-name" id="p2Name">CHALLENGER</div>
+            <div class="hud-hp-bar">
+              <div class="hud-hp-fill hud-hp-p2" id="p2HpFill" style="width:100%;"></div>
+            </div>
+            <div class="hud-meta"><span id="p2Score">0 pts</span> • Streak: <span id="p2Streak">🔥0</span></div>
+          </div>
+          <div class="hud-avatar-box">
+            <span class="hud-avatar" id="p2Avatar">🧝</span>
+            <div class="hud-role-badge p2-badge">P2</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Co-Op Team Synergy Meter (Visible only in Co-op Mode) -->
+      <div class="coop-synergy-banner" id="coopSynergyBanner" style="display:none;">
+        <div class="synergy-label">🤝 TEAM SYNERGY COMBO: <span id="synergyMultiplier" style="color:var(--gold);">1.0x</span></div>
+        <div class="synergy-bar-bg">
+          <div class="synergy-bar-fill" id="synergyFill" style="width:20%;"></div>
+        </div>
+        <div class="synergy-status" id="synergyStatus">Both players answering correctly doubles XP!</div>
+      </div>
+
+      <!-- Active Question Box -->
+      <div class="question-card mp-question-card">
+        <div class="q-meta">
+          <span class="q-badge" id="mpTopicBadge">Trigonometry</span>
+          <span class="q-badge xp" id="mpXPBadge">+30 XP</span>
+          <span class="mp-live-status" id="mpLiveStatus">⏳ Both players are answering...</span>
+        </div>
+        <h2 class="question-text" id="mpQuestionText">Loading battle question...</h2>
+      </div>
+
+      <!-- Options Grid -->
+      <div class="options-grid mp-options-grid" id="mpOptionsGrid">
+        <!-- Injected options -->
+      </div>
+
+      <!-- Explanation & Study Box (Quick review before auto-next) -->
+      <div class="explanation-panel" id="mpExpPanel" style="display:none;">
+        <div class="exp-title" id="mpExpTitle">✅ Round Complete!</div>
+        <div class="exp-text" id="mpExpText"></div>
+        <div class="exp-tip" id="mpExpTip"></div>
+      </div>
+
+      <!-- Realtime Reaction Bar & Live Combat Log -->
+      <div class="mp-footer-bar">
+        <div class="reaction-emojis">
+          <button class="emoji-btn" onclick="sendReaction('⚡')">⚡</button>
+          <button class="emoji-btn" onclick="sendReaction('🔥')">🔥</button>
+          <button class="emoji-btn" onclick="sendReaction('💡')">💡</button>
+          <button class="emoji-btn" onclick="sendReaction('🧠')">🧠</button>
+          <button class="emoji-btn" onclick="sendReaction('👏')">👏</button>
+          <button class="emoji-btn" onclick="sendReaction('💀')">💀</button>
+        </div>
+        <div class="combat-ticker" id="combatTicker">⚔️ Duel commenced! Choose your answer!</div>
+      </div>
+    </div>
+
+
+    <!-- ==============================================
+         POST-MATCH CEREMONY / VICTORY SCREEN
+         ============================================== -->
+    <div id="mpResults" class="results-card mp-results-card" style="display:none;">
+      <div class="result-icon" id="mpResIcon">🏆</div>
+      <h2 class="result-title" id="mpResTitle">MATCH COMPLETE!</h2>
+      <p class="result-sub" id="mpResSub">HERO emerged victorious in a legendary math duel!</p>
+
+      <!-- Head to Head Stats Comparison Table -->
+      <div class="h2h-stats-grid">
+        <div class="h2h-player-col" id="resP1Col">
+          <div class="h2h-avatar" id="resP1Avatar">🧙</div>
+          <div class="h2h-name" id="resP1Name">HERO</div>
+          <div class="h2h-score" id="resP1Score" style="color:var(--emerald);">800 pts</div>
+          <div class="h2h-detail">Accuracy: <span id="resP1Acc">90%</span></div>
+          <div class="h2h-detail">Max Streak: <span id="resP1MaxStreak">5 🔥</span></div>
+        </div>
+
+        <div class="h2h-divider">
+          <span style="font-family:var(--pixel);font-size:1rem;color:var(--gold);">VS</span>
+        </div>
+
+        <div class="h2h-player-col" id="resP2Col">
+          <div class="h2h-avatar" id="resP2Avatar">🧝</div>
+          <div class="h2h-name" id="resP2Name">CHALLENGER</div>
+          <div class="h2h-score" id="resP2Score" style="color:var(--lava);">550 pts</div>
+          <div class="h2h-detail">Accuracy: <span id="resP2Acc">70%</span></div>
+          <div class="h2h-detail">Max Streak: <span id="resP2MaxStreak">3 🔥</span></div>
+        </div>
+      </div>
+
+      <!-- Rewards -->
+      <div class="result-stats" style="margin-top:1.5rem;">
+        <div class="result-stat"><div class="val" id="mpRewardXP" style="color:var(--diamond);">+150</div><div class="lbl">XP Earned</div></div>
+        <div class="result-stat"><div class="val" id="mpRewardEm" style="color:var(--gold);">+15</div><div class="lbl">Emeralds</div></div>
+        <div class="result-stat"><div class="val" id="mpRewardHonor" style="color:var(--purple);">+1 Duel Badge</div><div class="lbl">Rank Reward</div></div>
+      </div>
+
+      <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-top:1.5rem;">
+        <a href="dashboard.html" class="btn btn-secondary">🏠 Dashboard</a>
+        <button class="btn btn-primary" onclick="rematch()">🔄 Rematch!</button>
+        <button class="btn btn-gold" onclick="returnToLobby()">⚔️ Arena Lobby</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="toast" class="toast"><span class="toast-icon">🎮</span><span class="toast-text"></span></div>
+
+  <script src="../js/supabase.js"></script>
+  <script src="../js/app.js"></script>
+  <script src="../js/questions.js"></script>
+  <script src="../js/config.js"></script>
+
+  <script>
+    if (!MC.requireAuth()) {}
+
+    /* ═══════════════════════════════════════════════
+       MULTIPLAYER ENGINE (REAL-TIME BROADCAST + LOCAL)
+       ═══════════════════════════════════════════════ */
+    const MP = {
+      mode: "duel", // "duel" | "coop" | "local"
+      role: "host", // "host" | "guest" | "local"
+      roomCode: null,
+      topic: "trigonometry",
+      channel: null,
+      questions: [],
+      currentIndex: 0,
+      timer: null,
+      timeLeft: 25,
+      autoNextTimer: null,
+      answered: false,
+
+      // State tracking
+      p1: { name: "HERO", avatar: "🧙", score: 0, hp: 100, streak: 0, maxStreak: 0, correct: 0, selectedAnswer: null },
+      p2: { name: "CHALLENGER", avatar: "🧝", score: 0, hp: 100, streak: 0, maxStreak: 0, correct: 0, selectedAnswer: null },
+      coopSynergy: 1.0,
+
+      init() {
+        const u = MC.getUser();
+        this.p1.name = (u.username || "HERO").toUpperCase();
+        this.p1.avatar = u.avatar || "🧙";
+
+        // Check if joined via URL params e.g. multiplayer.html?room=MC1234&mode=duel
+        const params = new URLSearchParams(window.location.search);
+        const joinCode = params.get("room");
+        const joinMode = params.get("mode");
+        if (joinCode) {
+          this.mode = joinMode || "duel";
+          document.getElementById("joinCodeInput").value = joinCode;
+          selectGameMode(this.mode);
+          this.joinRoom(joinCode);
+        }
+      }
+    };
+
+    function selectGameMode(mode) {
+      MP.mode = mode;
+      if (mode === "local") {
+        startLocalMatch();
+        return;
+      }
+      const setup = document.getElementById("roomSetupPanel");
+      setup.style.display = "block";
+      document.getElementById("roomPanelTitle").textContent = mode === "duel" ? "⚔️ 1v1 Versus Duel Room" : "🤝 Co-Op Study Room";
+      setup.scrollIntoView({ behavior: "smooth" });
+    }
+
+    function closeRoomSetup() {
+      document.getElementById("roomSetupPanel").style.display = "none";
+    }
+
+    function setRoomTopic(topic) {
+      MP.topic = topic;
+      document.querySelectorAll(".topic-chip").forEach(c => {
+        c.classList.toggle("active", c.dataset.topic === topic);
+      });
+    }
+
+    /* ── NETWORKING / BROADCAST SYNC ─────────────── */
+    function setupChannel(code) {
+      if (MP.channel) MP.channel.close();
+      const channelName = `mc_room_${code.toLowerCase().replace(/[^a-z0-9]/g, "")}`;
+      
+      // Use BroadcastChannel for zero-latency local / cross-tab play
+      const bc = new BroadcastChannel(channelName);
+      bc.onmessage = (e) => handleNetworkMessage(e.data);
+      MP.channel = bc;
+
+      // Also listen to Supabase realtime broadcast if available
+      if (window._supaClient) {
+        try {
+          const supaChan = window._supaClient.channel(channelName);
+          supaChan.on("broadcast", { event: "mp_msg" }, payload => {
+            handleNetworkMessage(payload.payload);
+          }).subscribe();
+        } catch(err) {
+          console.warn("Supabase realtime sync fallback:", err);
+        }
+      }
+    }
+
+    function broadcastMsg(type, payload = {}) {
+      const msg = { type, payload, sender: MP.role, senderName: MP.p1.name, senderAvatar: MP.p1.avatar, timestamp: Date.now() };
+      if (MP.channel) MP.channel.postMessage(msg);
+      if (window._supaClient) {
+        try {
+          const channelName = `mc_room_${(MP.roomCode||"").toLowerCase().replace(/[^a-z0-9]/g, "")}`;
+          window._supaClient.channel(channelName).send({
+            type: "broadcast",
+            event: "mp_msg",
+            payload: msg
+          });
+        } catch(e) {}
+      }
+    }
+
+    function handleNetworkMessage(msg) {
+      if (!msg || msg.sender === MP.role) return;
+
+      switch(msg.type) {
+        case "JOIN_REQUEST":
+          if (MP.role === "host") {
+            MP.p2.name = (msg.senderName || "PLAYER 2").toUpperCase();
+            MP.p2.avatar = msg.senderAvatar || "🧝";
+            document.getElementById("waitingStatusText").textContent = `✨ ${MP.p2.name} connected! Ready!`;
+            document.getElementById("forceStartBtn").style.display = "inline-block";
+            // Acknowledge and send match seed
+            broadcastMsg("JOIN_ACCEPT", {
+              topic: MP.topic,
+              questions: MP.questions,
+              hostName: MP.p1.name,
+              hostAvatar: MP.p1.avatar
+            });
+            MC.showToast(`🎮 ${MP.p2.name} joined the arena!`, "gold");
+          }
+          break;
+
+        case "JOIN_ACCEPT":
+          if (MP.role === "guest") {
+            MP.topic = msg.payload.topic;
+            MP.questions = msg.payload.questions;
+            MP.p2.name = (msg.payload.hostName || "HOST").toUpperCase();
+            MP.p2.avatar = msg.payload.hostAvatar || "🧙";
+            MC.showToast(`⚔️ Connected to ${MP.p2.name}'s room!`, "green");
+            startOnlineMatch();
+          }
+          break;
+
+        case "START_MATCH":
+          if (MP.role === "guest") {
+            startOnlineMatch();
+          }
+          break;
+
+        case "SUBMIT_ANSWER":
+          // Opponent answered
+          MP.p2.selectedAnswer = msg.payload.answerIdx;
+          const isCorrect = msg.payload.isCorrect;
+          if (isCorrect) {
+            MP.p2.score += msg.payload.xp;
+            MP.p2.streak++;
+            MP.p2.correct++;
+            MP.p2.maxStreak = Math.max(MP.p2.maxStreak, MP.p2.streak);
+            if (MP.mode === "duel") {
+              const dmg = 20 + MP.p2.streak * 5;
+              MP.p1.hp = Math.max(0, MP.p1.hp - dmg);
+              addCombatLog(`💥 ${MP.p2.name} landed a hit! (-${dmg} HP to you)`);
+            } else {
+              MP.coopSynergy = Math.min(2.5, +(MP.coopSynergy + 0.3).toFixed(1));
+              addCombatLog(`🤝 ${MP.p2.name} answered correctly! Synergy +0.3x!`);
+            }
+          } else {
+            MP.p2.streak = 0;
+            if (MP.mode === "duel") {
+              addCombatLog(`🛡️ ${MP.p2.name} missed their attack!`);
+            }
+          }
+          updateArenaHud();
+          checkRoundCompletion();
+          break;
+
+        case "REACTION":
+          showFloatingReaction(msg.payload.emoji, false);
+          break;
+
+        case "NEXT_QUESTION":
+          loadNextArenaQuestion();
+          break;
+      }
+    }
+
+    /* ── ROOM CREATION & JOINING ─────────────────── */
+    function createRoom() {
+      MP.role = "host";
+      MP.roomCode = "MC-" + Math.floor(1000 + Math.random() * 9000);
+      MP.questions = getQuestions(MP.topic, 8);
+      setupChannel(MP.roomCode);
+
+      document.getElementById("hostCodeDisplay").style.display = "block";
+      document.getElementById("roomCodeText").textContent = MP.roomCode;
+      document.getElementById("waitingStatusText").textContent = "Waiting for Player 2 to join...";
+      MC.showToast(`👑 Room ${MP.roomCode} created! Share with friend`, "gold");
+
+      // Auto-fallback start button after 4s in case playing single-window / test
+      setTimeout(() => {
+        const btn = document.getElementById("forceStartBtn");
+        if (btn) btn.style.display = "inline-block";
+      }, 3500);
+    }
+
+    function copyRoomLink() {
+      const url = `${window.location.origin}${window.location.pathname}?room=${MP.roomCode}&mode=${MP.mode}`;
+      navigator.clipboard.writeText(url).then(() => {
+        MC.showToast("📋 Invite link copied to clipboard!", "green");
+      }).catch(() => {
+        MC.showToast(`Code: ${MP.roomCode}`, "blue");
+      });
+    }
+
+    function joinRoomByInput() {
+      const val = document.getElementById("joinCodeInput").value.trim().toUpperCase();
+      if (!val) {
+        MC.showToast("⚠️ Please enter a room code", "red");
+        return;
+      }
+      MP.joinRoom(val);
+    }
+
+    function joinRoom(code) {
+      MP.role = "guest";
+      MP.roomCode = code.startsWith("MC-") ? code : `MC-${code}`;
+      setupChannel(MP.roomCode);
+      document.getElementById("joinStatusMsg").textContent = `Connecting to ${MP.roomCode}...`;
+      broadcastMsg("JOIN_REQUEST", {});
+      
+      // If host doesn't respond in 2.5s (e.g. mock test match), create matched seed
+      setTimeout(() => {
+        if (MP.questions.length === 0) {
+          MP.questions = getQuestions(MP.topic, 8);
+          MP.p2.name = "RIVAL KNIGHT";
+          MP.p2.avatar = "⚔️";
+          MC.showToast("⚔️ Joined room! Starting match...", "green");
+          startOnlineMatch();
+        }
+      }, 2000);
+    }
+
+    /* ── STARTING MATCH ──────────────────────────── */
+    function startLocalMatch() {
+      MP.role = "local";
+      MP.p1.name = "PLAYER 1";
+      MP.p1.avatar = "🧙";
+      MP.p2.name = "PLAYER 2";
+      MP.p2.avatar = "🧝";
+      MP.questions = getQuestions(MP.topic, 8);
+      startOnlineMatch();
+    }
+
+    function startOnlineMatch() {
+      if (MP.role === "host") {
+        broadcastMsg("START_MATCH", {});
+      }
+      document.getElementById("mpLobby").style.display = "none";
+      document.getElementById("mpResults").style.display = "none";
+      document.getElementById("mpArena").style.display = "block";
+
+      // Reset match state
+      MP.currentIndex = 0;
+      MP.p1.hp = 100; MP.p1.score = 0; MP.p1.streak = 0; MP.p1.correct = 0;
+      MP.p2.hp = 100; MP.p2.score = 0; MP.p2.streak = 0; MP.p2.correct = 0;
+      MP.coopSynergy = 1.0;
+
+      // Mode specifics
+      if (MP.mode === "coop") {
+        document.getElementById("coopSynergyBanner").style.display = "flex";
+        document.getElementById("arenaCenterBadge").textContent = "🤝";
+      } else {
+        document.getElementById("coopSynergyBanner").style.display = "none";
+        document.getElementById("arenaCenterBadge").textContent = "VS";
+      }
+
+      updateArenaHud();
+      loadArenaQuestion();
+    }
+
+    /* ── IN-GAME QUESTION HANDLING ───────────────── */
+    function loadArenaQuestion() {
+      clearTimeout(MP.autoNextTimer);
+      if (MP.currentIndex >= MP.questions.length || (MP.mode === "duel" && (MP.p1.hp <= 0 || MP.p2.hp <= 0))) {
+        showMatchResults();
+        return;
+      }
+
+      MP.answered = false;
+      MP.p1.selectedAnswer = null;
+      MP.p2.selectedAnswer = null;
+
+      document.getElementById("mpExpPanel").style.display = "none";
+      document.getElementById("mpLiveStatus").textContent = "⏳ Choose your answer!";
+
+      const q = MP.questions[MP.currentIndex];
+      document.getElementById("arenaQNum").textContent = `Q ${MP.currentIndex + 1}/${MP.questions.length}`;
+      document.getElementById("mpTopicBadge").textContent = q.difficulty.toUpperCase();
+      document.getElementById("mpTopicBadge").className = `q-badge ${q.difficulty}`;
+      document.getElementById("mpXPBadge").textContent = `+${q.xp} XP`;
+      document.getElementById("mpQuestionText").textContent = q.question;
+
+      const letters = ["A", "B", "C", "D"];
+      const grid = document.getElementById("mpOptionsGrid");
+      grid.innerHTML = "";
+      q.options.forEach((opt, i) => {
+        const btn = document.createElement("button");
+        btn.className = "option-btn mp-opt-btn";
+        btn.innerHTML = `<span class="option-letter">${letters[i]}</span>${opt}`;
+        btn.onclick = () => selectArenaAnswer(i, btn);
+        grid.appendChild(btn);
+      });
+
+      startArenaTimer();
+
+      // In test/local mode with simulated opponent, simulate challenger answer
+      if (MP.role === "host" || MP.role === "local") {
+        simulateChallengerMove(q);
+      }
+    }
+
+    function startArenaTimer() {
+      clearInterval(MP.timer);
+      MP.timeLeft = 25;
+      const el = document.getElementById("arenaTimer");
+      el.textContent = MP.timeLeft;
+      el.className = "arena-timer-ring";
+
+      MP.timer = setInterval(() => {
+        MP.timeLeft--;
+        el.textContent = MP.timeLeft;
+        if (MP.timeLeft <= 5) el.className = "arena-timer-ring danger";
+        if (MP.timeLeft <= 0) {
+          clearInterval(MP.timer);
+          if (!MP.answered) handleArenaTimeUp();
+        }
+      }, 1000);
+    }
+
+    function selectArenaAnswer(idx, btn) {
+      if (MP.answered) return;
+      MP.answered = true;
+      clearInterval(MP.timer);
+      MP.p1.selectedAnswer = idx;
+
+      const q = MP.questions[MP.currentIndex];
+      const isCorrect = (idx === q.answer);
+      const btns = document.querySelectorAll(".mp-opt-btn");
+
+      if (isCorrect) {
+        btn.classList.add("correct");
+        const speedBonus = Math.floor(MP.timeLeft * 2);
+        const earnedXP = q.xp + speedBonus;
+        MP.p1.score += earnedXP;
+        MP.p1.streak++;
+        MP.p1.correct++;
+        MP.p1.maxStreak = Math.max(MP.p1.maxStreak, MP.p1.streak);
+
+        if (MP.mode === "duel") {
+          const dmg = 25 + MP.p1.streak * 5;
+          MP.p2.hp = Math.max(0, MP.p2.hp - dmg);
+          addCombatLog(`⚡ You dealt ${dmg} damage to ${MP.p2.name}!`);
+          MC.showToast(`⚔️ Attack Landed! +${earnedXP} XP`, "green");
+        } else {
+          MP.coopSynergy = Math.min(3.0, +(MP.coopSynergy + 0.3).toFixed(1));
+          addCombatLog(`🤝 Synergy boost! ${MP.coopSynergy}x XP active!`);
+          MC.showToast(`✅ Correct! +${earnedXP} Team XP`, "green");
+        }
+      } else {
+        btn.classList.add("wrong");
+        btns[q.answer].classList.add("correct");
+        MP.p1.streak = 0;
+        if (MP.mode === "duel") {
+          addCombatLog(`🛡️ You missed the attack.`);
+          MC.showToast("❌ Incorrect!", "red");
+        }
+      }
+
+      // Broadcast move to partner/opponent
+      broadcastMsg("SUBMIT_ANSWER", {
+        answerIdx: idx,
+        isCorrect,
+        xp: isCorrect ? q.xp : 0
+      });
+
+      updateArenaHud();
+      showArenaExplanation(isCorrect, q);
+      checkRoundCompletion();
+    }
+
+    function handleArenaTimeUp() {
+      MP.answered = true;
+      const q = MP.questions[MP.currentIndex];
+      const btns = document.querySelectorAll(".mp-opt-btn");
+      btns.forEach((b, i) => {
+        b.disabled = true;
+        if (i === q.answer) b.classList.add("correct");
+      });
+      MP.p1.streak = 0;
+      addCombatLog("⏰ Time's up for this round!");
+      showArenaExplanation(false, q);
+      checkRoundCompletion();
+    }
+
+    function simulateChallengerMove(q) {
+      const delay = 2500 + Math.random() * 6000;
+      setTimeout(() => {
+        if (MP.p2.selectedAnswer !== null || MP.currentIndex >= MP.questions.length) return;
+        const willBeCorrect = Math.random() > 0.35;
+        const ans = willBeCorrect ? q.answer : (q.answer + 1) % 4;
+        MP.p2.selectedAnswer = ans;
+
+        if (willBeCorrect) {
+          MP.p2.score += q.xp + 10;
+          MP.p2.streak++;
+          MP.p2.correct++;
+          MP.p2.maxStreak = Math.max(MP.p2.maxStreak, MP.p2.streak);
+          if (MP.mode === "duel") {
+            const dmg = 20 + MP.p2.streak * 4;
+            MP.p1.hp = Math.max(0, MP.p1.hp - dmg);
+            addCombatLog(`💥 ${MP.p2.name} struck you for ${dmg} DMG!`);
+          } else {
+            MP.coopSynergy = Math.min(3.0, +(MP.coopSynergy + 0.2).toFixed(1));
+            addCombatLog(`🤝 ${MP.p2.name} solved the puzzle! Synergy UP!`);
+          }
+        } else {
+          MP.p2.streak = 0;
+        }
+        updateArenaHud();
+        checkRoundCompletion();
+      }, delay);
+    }
+
+    function checkRoundCompletion() {
+      // If player has answered, automatically progress to next after short feedback
+      if (MP.answered) {
+        clearTimeout(MP.autoNextTimer);
+        MP.autoNextTimer = setTimeout(() => {
+          MP.currentIndex++;
+          if (MP.role === "host") broadcastMsg("NEXT_QUESTION", {});
+          loadArenaQuestion();
+        }, 2200);
+      }
+    }
+
+    function loadNextArenaQuestion() {
+      clearTimeout(MP.autoNextTimer);
+      MP.currentIndex++;
+      loadArenaQuestion();
+    }
+
+    function updateArenaHud() {
+      document.getElementById("p1Name").textContent = MP.p1.name;
+      document.getElementById("p1Avatar").textContent = MP.p1.avatar;
+      document.getElementById("p1Score").textContent = `${MP.p1.score} pts`;
+      document.getElementById("p1Streak").textContent = `🔥${MP.p1.streak}`;
+      document.getElementById("p1HpFill").style.width = `${MP.p1.hp}%`;
+
+      document.getElementById("p2Name").textContent = MP.p2.name;
+      document.getElementById("p2Avatar").textContent = MP.p2.avatar;
+      document.getElementById("p2Score").textContent = `${MP.p2.score} pts`;
+      document.getElementById("p2Streak").textContent = `🔥${MP.p2.streak}`;
+      document.getElementById("p2HpFill").style.width = `${MP.p2.hp}%`;
+
+      // Update synergy in co-op
+      if (MP.mode === "coop") {
+        document.getElementById("synergyMultiplier").textContent = `${MP.coopSynergy}x`;
+        document.getElementById("synergyFill").style.width = `${(MP.coopSynergy / 3.0) * 100}%`;
+      }
+    }
+
+    function showArenaExplanation(correct, q) {
+      const panel = document.getElementById("mpExpPanel");
+      panel.style.display = "block";
+      panel.className = `explanation-panel ${correct ? "" : "wrong-panel"}`;
+      document.getElementById("mpExpTitle").textContent = correct ? "✅ Great Job!" : "💡 Study Note";
+      document.getElementById("mpExpText").textContent = q.explanation;
+      document.getElementById("mpExpTip").textContent = `Tip: ${q.tip}`;
+    }
+
+    function addCombatLog(text) {
+      const ticker = document.getElementById("combatTicker");
+      ticker.textContent = text;
+      ticker.classList.remove("log-pulse");
+      void ticker.offsetWidth;
+      ticker.classList.add("log-pulse");
+    }
+
+    function sendReaction(emoji) {
+      showFloatingReaction(emoji, true);
+      broadcastMsg("REACTION", { emoji });
+    }
+
+    function showFloatingReaction(emoji, isMe) {
+      const el = document.createElement("div");
+      el.className = "floating-emoji";
+      el.textContent = emoji;
+      el.style.left = isMe ? "20%" : "75%";
+      el.style.bottom = "120px";
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 1600);
+    }
+
+    /* ── MATCH RESULTS & REWARDS ─────────────────── */
+    function showMatchResults() {
+      clearInterval(MP.timer);
+      clearTimeout(MP.autoNextTimer);
+      document.getElementById("mpArena").style.display = "none";
+      document.getElementById("mpResults").style.display = "block";
+
+      const p1Won = MP.mode === "duel" ? (MP.p1.hp > MP.p2.hp || (MP.p1.hp === MP.p2.hp && MP.p1.score >= MP.p2.score)) : true;
+      
+      document.getElementById("resP1Name").textContent = MP.p1.name;
+      document.getElementById("resP1Avatar").textContent = MP.p1.avatar;
+      document.getElementById("resP1Score").textContent = `${MP.p1.score} pts`;
+      document.getElementById("resP1Acc").textContent = `${Math.round((MP.p1.correct / MP.questions.length) * 100)}%`;
+      document.getElementById("resP1MaxStreak").textContent = `${MP.p1.maxStreak} 🔥`;
+
+      document.getElementById("resP2Name").textContent = MP.p2.name;
+      document.getElementById("resP2Avatar").textContent = MP.p2.avatar;
+      document.getElementById("resP2Score").textContent = `${MP.p2.score} pts`;
+      document.getElementById("resP2Acc").textContent = `${Math.round((MP.p2.correct / MP.questions.length) * 100)}%`;
+      document.getElementById("resP2MaxStreak").textContent = `${MP.p2.maxStreak} 🔥`;
+
+      if (MP.mode === "duel") {
+        if (p1Won) {
+          document.getElementById("mpResIcon").textContent = "👑";
+          document.getElementById("mpResTitle").textContent = "VICTORY!";
+          document.getElementById("mpResSub").textContent = `${MP.p1.name} dominated the 1v1 duel arena!`;
+          MC.confetti();
+        } else {
+          document.getElementById("mpResIcon").textContent = "💀";
+          document.getElementById("mpResTitle").textContent = "DEFEAT!";
+          document.getElementById("mpResSub").textContent = `${MP.p2.name} won this duel. Train and rematch!`;
+        }
+      } else {
+        document.getElementById("mpResIcon").textContent = "🌟";
+        document.getElementById("mpResTitle").textContent = "DUO QUEST COMPLETE!";
+        document.getElementById("mpResSub").textContent = `Incredible teamwork! You both earned double knowledge bonus!`;
+        MC.confetti();
+      }
+
+      // Add rewards
+      const earnedXP = p1Won ? 200 : 100;
+      const earnedEm = p1Won ? 20 : 10;
+      MC.addXP(earnedXP);
+      MC.addEmeralds(earnedEm);
+      MC.updateNavStats();
+      MC.showToast(`🎉 +${earnedXP} XP & +${earnedEm} Emeralds awarded!`, "gold");
+    }
+
+    function rematch() {
+      MP.questions = getQuestions(MP.topic, 8);
+      startOnlineMatch();
+    }
+
+    function returnToLobby() {
+      document.getElementById("mpResults").style.display = "none";
+      document.getElementById("mpArena").style.display = "none";
+      document.getElementById("mpLobby").style.display = "block";
+    }
+
+    // Init
+    MP.init();
+    MC.updateNavStats();
+  </script>
+  <script src="../js/chatbot.js"></script>
+</body>
+</html>

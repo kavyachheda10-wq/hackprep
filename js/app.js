@@ -1,14 +1,44 @@
-﻿// ===== MATHCRAFT APP STATE (localStorage) =====
+// ===== MATHCRAFT APP STATE =====
+// Integrates with Supabase when available, falls back to localStorage for guests.
 
 const MC = {
+  _cache: null, // in-memory user cache
+
   // --- State ---
   getUser() {
+    if (this._cache) return this._cache;
     const d = localStorage.getItem("mc_user");
-    return d ? JSON.parse(d) : null;
+    this._cache = d ? JSON.parse(d) : null;
+    return this._cache;
   },
+
   saveUser(u) {
+    this._cache = u;
     localStorage.setItem("mc_user", JSON.stringify(u));
+    // Async sync to Supabase (fire and forget)
+    if (window.SupaDB && u && u.supaId) {
+      this._syncToSupabase(u).catch(e => console.warn("[MC] Supabase sync error:", e));
+    }
   },
+
+  async _syncToSupabase(u) {
+    if (!window.SupaDB || !u.supaId) return;
+    await window.SupaDB.updateProfile(u.supaId, {
+      username: u.username,
+      avatar: u.avatar,
+      level: u.level,
+      xp: u.xp,
+      xp_to_next: u.xpToNext,
+      emeralds: u.emeralds,
+      streak: u.streak,
+      last_login: new Date().toISOString().split("T")[0]
+    });
+    // Sync progress per topic
+    for (const [topic, pct] of Object.entries(u.progress || {})) {
+      await window.SupaDB.saveProgress(u.supaId, topic, pct);
+    }
+  },
+
   defaultUser(username) {
     return {
       username,
@@ -24,11 +54,23 @@ const MC = {
       bossDefeated: [],
       achievements: [],
       quizHistory: [],
-      badges: []
+      badges: [],
+      supaId: null, // null for guests
+      isGuest: false
     };
   },
+
   isLoggedIn() { return !!this.getUser(); },
-  logout() { localStorage.removeItem("mc_user"); window.location.href = "../pages/auth.html"; },
+
+  async logout() {
+    // Sign out of Supabase if available
+    if (window.SupaDB) {
+      try { await window.SupaDB.signOut(); } catch (_) {}
+    }
+    localStorage.removeItem("mc_user");
+    this._cache = null;
+    window.location.href = "auth.html";
+  },
 
   // --- XP & Level ---
   addXP(amount) {
@@ -43,12 +85,14 @@ const MC = {
     this.saveUser(u);
     this.updateNavStats();
   },
+
   addEmeralds(amount) {
     const u = this.getUser(); if(!u) return;
     u.emeralds += amount;
     this.saveUser(u);
     this.updateNavStats();
   },
+
   addProgress(topic, amount) {
     const u = this.getUser(); if(!u) return;
     u.progress[topic] = Math.min(100, (u.progress[topic]||0) + amount);
@@ -57,6 +101,7 @@ const MC = {
     }
     this.saveUser(u);
   },
+
   unlockAchievement(id, name, icon) {
     const u = this.getUser(); if(!u) return;
     if(u.achievements.includes(id)) return;
@@ -64,12 +109,63 @@ const MC = {
     u.badges.push({id, name, icon, earnedAt: new Date().toISOString()});
     this.saveUser(u);
     this.showToast(`🏆 Achievement: ${name}`, "gold");
+    // Sync badge to Supabase
+    if (window.SupaDB && u.supaId) {
+      window.SupaDB.addBadge(u.supaId, id, name, icon).catch(() => {});
+    }
   },
+
   saveQuizResult(topic, score, total, xpEarned) {
     const u = this.getUser(); if(!u) return;
     u.quizHistory.unshift({ topic, score, total, xpEarned, date: new Date().toLocaleDateString() });
     if(u.quizHistory.length > 20) u.quizHistory = u.quizHistory.slice(0, 20);
     this.saveUser(u);
+    // Sync to Supabase
+    if (window.SupaDB && u.supaId) {
+      window.SupaDB.saveQuizResult(u.supaId, { topic, score, total, xpEarned }).catch(() => {});
+    }
+  },
+
+  // --- Load user from Supabase (called on page load for authenticated users) ---
+  async loadFromSupabase() {
+    if (!window.SupaDB) return false;
+    try {
+      const session = await window.SupaDB.getSession();
+      if (!session || !session.user) return false;
+      const uid = session.user.id;
+      const profile = await window.SupaDB.getProfile(uid);
+      const progress = await window.SupaDB.getProgress(uid);
+      const quizHistory = await window.SupaDB.getQuizHistory(uid, 20);
+      const badges = await window.SupaDB.getBadges(uid);
+
+      const u = {
+        username: profile.username || "Hero",
+        avatar: profile.avatar || "🧙",
+        level: profile.level || 1,
+        xp: profile.xp || 0,
+        xpToNext: profile.xp_to_next || 500,
+        emeralds: profile.emeralds || 0,
+        streak: profile.streak || 1,
+        lastLogin: profile.last_login || new Date().toDateString(),
+        progress: {
+          trigonometry: 0, probability: 0, statistics: 0,
+          equations: 0, sets: 0, triangles: 0,
+          ...progress
+        },
+        completedTopics: Object.entries(progress).filter(([, v]) => v >= 100).map(([k]) => k),
+        bossDefeated: [],
+        achievements: badges.map(b => b.badge_id),
+        quizHistory,
+        badges: badges.map(b => ({ id: b.badge_id, name: b.name, icon: b.icon, earnedAt: b.earned_at })),
+        supaId: uid,
+        isGuest: false
+      };
+      this.saveUser(u);
+      return true;
+    } catch (e) {
+      console.warn("[MC] Could not load from Supabase:", e);
+      return false;
+    }
   },
 
   // --- UI Helpers ---
@@ -81,6 +177,7 @@ const MC = {
     document.querySelectorAll(".nav-lvl").forEach(el => el.textContent = `Lv.${u.level}`);
     document.querySelectorAll(".nav-name").forEach(el => el.textContent = u.username);
   },
+
   showToast(msg, type="green") {
     const colors = { green:"var(--emerald)", gold:"var(--gold)", red:"var(--lava)", blue:"var(--diamond)" };
     let t = document.getElementById("toast");
@@ -96,6 +193,7 @@ const MC = {
     clearTimeout(t._to);
     t._to = setTimeout(() => t.classList.remove("show"), 3000);
   },
+
   showXPPopup(amount) {
     let p = document.getElementById("xp-popup");
     if(!p) {
@@ -109,10 +207,12 @@ const MC = {
     void p.offsetWidth;
     p.classList.add("show");
   },
+
   showLevelUp(level) {
     this.showToast(`⚡ Level Up! You are now Level ${level}!`, "gold");
     this.confetti();
   },
+
   confetti() {
     const colors = ["#2ECC71","#FFD54F","#4FC3F7","#FF7043","#8E44AD","#F8F9FA"];
     const wrap = document.createElement("div"); wrap.className = "confetti-wrap"; document.body.appendChild(wrap);
@@ -125,6 +225,7 @@ const MC = {
     }
     setTimeout(() => wrap.remove(), 3500);
   },
+
   requireAuth() {
     if(!this.isLoggedIn()) {
       window.location.href = "auth.html";
@@ -133,9 +234,12 @@ const MC = {
     return true;
   },
 
-  // --- Leaderboard (simulated) ---
+  // --- Leaderboard ---
   getLeaderboard() {
     const u = this.getUser();
+    // If Supabase leaderboard data is cached, use it
+    if (this._lbCache) return this._lbCache;
+
     const fake = [
       { username:"CryptoMage", avatar:"🧝", level:12, xp:5840 },
       { username:"VoxelWitch", avatar:"🧙‍♀️", level:10, xp:4210 },
@@ -148,6 +252,24 @@ const MC = {
     const you = u ? { username:u.username, avatar:u.avatar, level:u.level, xp:u.xp, isMe:true } : null;
     if(you) fake.push(you);
     return fake.sort((a,b)=>b.xp-a.xp).map((r,i)=>({...r,rank:i+1}));
+  },
+
+  _lbCache: null,
+
+  async loadLeaderboard() {
+    if (!window.SupaDB) return this.getLeaderboard();
+    try {
+      const data = await window.SupaDB.getLeaderboard(20);
+      const u = this.getUser();
+      this._lbCache = data.map(r => ({
+        ...r,
+        isMe: u && u.supaId === r.id
+      }));
+      return this._lbCache;
+    } catch (e) {
+      console.warn("[MC] Leaderboard fetch failed:", e);
+      return this.getLeaderboard();
+    }
   }
 };
 
