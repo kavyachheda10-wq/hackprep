@@ -113,6 +113,7 @@
     let playerHP = 5, answered = false;
     let questions = getQuestions(topic, 15);
     let qIdx = 0;
+    let bossAutoTimer = null;
 
     const letters = ["A","B","C","D"];
 
@@ -124,6 +125,7 @@
     }
 
     function loadBossQ(){
+      clearTimeout(bossAutoTimer);
       if(qIdx >= questions.length) questions = getQuestions(topic,15); // loop
       answered = false;
       document.getElementById("bNextBtn").style.display = "none";
@@ -149,6 +151,7 @@
     function selectBossAnswer(idx,btn,q){
       if(answered)return;
       answered=true;
+      clearTimeout(bossAutoTimer);
       const btns = document.querySelectorAll(".option-btn");
       btns.forEach(b=>b.disabled=true);
 
@@ -164,6 +167,7 @@
         showBossExp(true,q);
         MC.showToast(`⚔️ Hit! Dealt ${dmg} damage!`, "green");
         if(bossHP<=0){ setTimeout(victory,1000); return; }
+        scheduleBossAutoNext(1400);
       } else {
         btn.classList.add("wrong");
         btns[q.answer].classList.add("correct");
@@ -175,8 +179,16 @@
         document.getElementById("battleScreen").classList.add("shake");
         setTimeout(()=>document.getElementById("battleScreen").classList.remove("shake"),400);
         if(playerHP<=0){ setTimeout(defeat,800); return; }
+        scheduleBossAutoNext(2000);
       }
       document.getElementById("bNextBtn").style.display="inline-flex";
+    }
+
+    function scheduleBossAutoNext(delayMs = 1500) {
+      clearTimeout(bossAutoTimer);
+      bossAutoTimer = setTimeout(() => {
+        nextBossQ();
+      }, delayMs);
     }
 
     function showDmgNum(text, cls){
@@ -204,9 +216,13 @@
       document.getElementById("bExpTip").textContent = `💡 ${q.tip}`;
     }
 
-    function nextBossQ(){ loadBossQ(); }
+    function nextBossQ(){
+      clearTimeout(bossAutoTimer);
+      loadBossQ();
+    }
 
     function victory(){
+      clearTimeout(bossAutoTimer);
       MC.addXP(boss.reward);
       MC.addEmeralds(50);
       const u = MC.getUser();
@@ -219,11 +235,13 @@
     }
 
     function defeat(){
+      clearTimeout(bossAutoTimer);
       document.getElementById("battleScreen").style.display="none";
       document.getElementById("defeatScreen").style.display="block";
     }
 
     function restartBoss(){
+      clearTimeout(bossAutoTimer);
       bossHP=maxHP; playerHP=5; qIdx=0; answered=false;
       document.querySelectorAll(".heart").forEach(h=>h.classList.remove("lost"));
       updateBossHP();

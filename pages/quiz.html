@@ -91,10 +91,12 @@
     let questions = getQuestions(topic, 10);
     let current = 0, score = 0, totalXP = 0, hearts = 3, answered = false;
     let timer, timeLeft = 30;
+    let autoNextTimer = null;
 
     const letters = ["A","B","C","D"];
 
     function loadQuestion() {
+      clearTimeout(autoNextTimer);
       if(current >= questions.length) { showResults(); return; }
       answered = false;
       document.getElementById("nextBtn").style.display = "none";
@@ -147,6 +149,9 @@
       btns.forEach((b,i) => { b.disabled=true; if(i===q.answer) b.classList.add("correct"); });
       loseHeart();
       showExplanation(false, q);
+      if(hearts > 0) {
+        scheduleAutoNext(2000);
+      }
     }
 
     function selectAnswer(idx, btn) {
@@ -166,14 +171,27 @@
         MC.showXPPopup(q.xp);
         MC.showToast(`✅ Correct! +${q.xp} XP`, "green");
         showExplanation(true, q);
+        scheduleAutoNext(1200);
       } else {
         btn.classList.add("wrong");
         btns[q.answer].classList.add("correct");
         loseHeart();
         showExplanation(false, q);
+        if(hearts > 0) {
+          scheduleAutoNext(2200);
+        }
       }
+    }
 
-      document.getElementById("nextBtn").style.display = "inline-flex";
+    function scheduleAutoNext(delayMs = 1400) {
+      clearTimeout(autoNextTimer);
+      const nextBtn = document.getElementById("nextBtn");
+      if(nextBtn) {
+        nextBtn.style.display = "inline-flex";
+      }
+      autoNextTimer = setTimeout(() => {
+        nextQuestion();
+      }, delayMs);
     }
 
     function loseHeart() {
@@ -182,6 +200,7 @@
       if(h[hearts]) h[hearts].classList.add("lost");
       MC.showToast("❌ Wrong answer!", "red");
       if(hearts <= 0) {
+        clearTimeout(autoNextTimer);
         setTimeout(() => { MC.showToast("💔 Out of hearts! Ending quiz...", "red"); setTimeout(showResults, 1500); }, 500);
       }
     }
@@ -203,12 +222,14 @@
     }
 
     function nextQuestion() {
+      clearTimeout(autoNextTimer);
       current++;
       loadQuestion();
     }
 
     function showResults() {
       clearInterval(timer);
+      clearTimeout(autoNextTimer);
       document.getElementById("quizScreen").style.display = "none";
       document.getElementById("resultsScreen").style.display = "block";
 
@@ -249,6 +270,7 @@
     }
 
     function retryQuiz() {
+      clearTimeout(autoNextTimer);
       questions = getQuestions(topic, 10);
       current=0; score=0; totalXP=0; hearts=3; answered=false;
       document.querySelectorAll(".heart").forEach(h=>h.classList.remove("lost"));

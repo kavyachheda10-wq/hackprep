@@ -13,6 +13,6 @@
    ============================================================ */
 
 window.MATHCRAFT_CONFIG = {
-  GROQ_API_KEY: "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",   // ← replace with real key
+  GROQ_API_KEY: "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",
   GROQ_MODEL: "llama3-70b-8192",
 };
