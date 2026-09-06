@@ -11,8 +11,7 @@
 
    js/config.js is listed in .gitignore so your key is safe.
    ============================================================ */
-
 window.MATHCRAFT_CONFIG = {
-  GROQ_API_KEY: "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",
-  GROQ_MODEL: "llama3-70b-8192",
+  GROQ_API_KEY: "your_groq_api_key_here",
+  GROQ_MODEL: "openai/gpt-oss-20b"
 };

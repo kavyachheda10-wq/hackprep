@@ -49,7 +49,7 @@ const MC = {
       emeralds: 0,
       streak: 1,
       lastLogin: new Date().toDateString(),
-      progress: { trigonometry:0, probability:0, statistics:0, equations:0, sets:0, triangles:0 },
+      progress: { trigonometry: 0, probability: 0, statistics: 0, equations: 0, sets: 0, triangles: 0 },
       completedTopics: [],
       bossDefeated: [],
       achievements: [],
@@ -65,7 +65,7 @@ const MC = {
   async logout() {
     // Sign out of Supabase if available
     if (window.SupaDB) {
-      try { await window.SupaDB.signOut(); } catch (_) {}
+      try { await window.SupaDB.signOut(); } catch (_) { }
     }
     localStorage.removeItem("mc_user");
     this._cache = null;
@@ -74,9 +74,9 @@ const MC = {
 
   // --- XP & Level ---
   addXP(amount) {
-    const u = this.getUser(); if(!u) return;
+    const u = this.getUser(); if (!u) return;
     u.xp += amount;
-    while(u.xp >= u.xpToNext) {
+    while (u.xp >= u.xpToNext) {
       u.xp -= u.xpToNext;
       u.level++;
       u.xpToNext = Math.floor(u.xpToNext * 1.3);
@@ -87,42 +87,42 @@ const MC = {
   },
 
   addEmeralds(amount) {
-    const u = this.getUser(); if(!u) return;
+    const u = this.getUser(); if (!u) return;
     u.emeralds += amount;
     this.saveUser(u);
     this.updateNavStats();
   },
 
   addProgress(topic, amount) {
-    const u = this.getUser(); if(!u) return;
-    u.progress[topic] = Math.min(100, (u.progress[topic]||0) + amount);
-    if(u.progress[topic] >= 100 && !u.completedTopics.includes(topic)) {
+    const u = this.getUser(); if (!u) return;
+    u.progress[topic] = Math.min(100, (u.progress[topic] || 0) + amount);
+    if (u.progress[topic] >= 100 && !u.completedTopics.includes(topic)) {
       u.completedTopics.push(topic);
     }
     this.saveUser(u);
   },
 
   unlockAchievement(id, name, icon) {
-    const u = this.getUser(); if(!u) return;
-    if(u.achievements.includes(id)) return;
+    const u = this.getUser(); if (!u) return;
+    if (u.achievements.includes(id)) return;
     u.achievements.push(id);
-    u.badges.push({id, name, icon, earnedAt: new Date().toISOString()});
+    u.badges.push({ id, name, icon, earnedAt: new Date().toISOString() });
     this.saveUser(u);
     this.showToast(`🏆 Achievement: ${name}`, "gold");
     // Sync badge to Supabase
     if (window.SupaDB && u.supaId) {
-      window.SupaDB.addBadge(u.supaId, id, name, icon).catch(() => {});
+      window.SupaDB.addBadge(u.supaId, id, name, icon).catch(() => { });
     }
   },
 
   saveQuizResult(topic, score, total, xpEarned) {
-    const u = this.getUser(); if(!u) return;
+    const u = this.getUser(); if (!u) return;
     u.quizHistory.unshift({ topic, score, total, xpEarned, date: new Date().toLocaleDateString() });
-    if(u.quizHistory.length > 20) u.quizHistory = u.quizHistory.slice(0, 20);
+    if (u.quizHistory.length > 20) u.quizHistory = u.quizHistory.slice(0, 20);
     this.saveUser(u);
     // Sync to Supabase
     if (window.SupaDB && u.supaId) {
-      window.SupaDB.saveQuizResult(u.supaId, { topic, score, total, xpEarned }).catch(() => {});
+      window.SupaDB.saveQuizResult(u.supaId, { topic, score, total, xpEarned }).catch(() => { });
     }
   },
 
@@ -170,7 +170,7 @@ const MC = {
 
   // --- UI Helpers ---
   updateNavStats() {
-    const u = this.getUser(); if(!u) return;
+    const u = this.getUser(); if (!u) return;
     const pct = Math.round((u.xp / u.xpToNext) * 100);
     document.querySelectorAll(".nav-xp").forEach(el => el.textContent = `${u.xp} XP`);
     document.querySelectorAll(".nav-em").forEach(el => el.textContent = `${u.emeralds} 💎`);
@@ -178,10 +178,10 @@ const MC = {
     document.querySelectorAll(".nav-name").forEach(el => el.textContent = u.username);
   },
 
-  showToast(msg, type="green") {
-    const colors = { green:"var(--emerald)", gold:"var(--gold)", red:"var(--lava)", blue:"var(--diamond)" };
+  showToast(msg, type = "green") {
+    const colors = { green: "var(--emerald)", gold: "var(--gold)", red: "var(--lava)", blue: "var(--diamond)" };
     let t = document.getElementById("toast");
-    if(!t) {
+    if (!t) {
       t = document.createElement("div");
       t.id = "toast"; t.className = "toast";
       t.innerHTML = `<span class="toast-icon">🎮</span><span class="toast-text"></span>`;
@@ -196,7 +196,7 @@ const MC = {
 
   showXPPopup(amount) {
     let p = document.getElementById("xp-popup");
-    if(!p) {
+    if (!p) {
       p = document.createElement("div");
       p.id = "xp-popup"; p.className = "xp-popup";
       p.innerHTML = `<div class="xp-popup-val">+<span id="xp-amt"></span></div><div class="xp-popup-lbl">XP Earned!</div>`;
@@ -214,20 +214,20 @@ const MC = {
   },
 
   confetti() {
-    const colors = ["#2ECC71","#FFD54F","#4FC3F7","#FF7043","#8E44AD","#F8F9FA"];
+    const colors = ["#2ECC71", "#FFD54F", "#4FC3F7", "#FF7043", "#8E44AD", "#F8F9FA"];
     const wrap = document.createElement("div"); wrap.className = "confetti-wrap"; document.body.appendChild(wrap);
-    for(let i=0; i<60; i++) {
+    for (let i = 0; i < 60; i++) {
       const c = document.createElement("div"); c.className = "conf";
-      c.style.cssText = `left:${Math.random()*100}%;background:${colors[Math.floor(Math.random()*colors.length)]};
-        width:${6+Math.random()*8}px;height:${6+Math.random()*8}px;
-        animation-duration:${1.5+Math.random()*2}s;animation-delay:${Math.random()*0.5}s;border-radius:${Math.random()>0.5?'50%':'2px'}`;
+      c.style.cssText = `left:${Math.random() * 100}%;background:${colors[Math.floor(Math.random() * colors.length)]};
+        width:${6 + Math.random() * 8}px;height:${6 + Math.random() * 8}px;
+        animation-duration:${1.5 + Math.random() * 2}s;animation-delay:${Math.random() * 0.5}s;border-radius:${Math.random() > 0.5 ? '50%' : '2px'}`;
       wrap.appendChild(c);
     }
     setTimeout(() => wrap.remove(), 3500);
   },
 
   requireAuth() {
-    if(!this.isLoggedIn()) {
+    if (!this.isLoggedIn()) {
       window.location.href = "auth.html";
       return false;
     }
@@ -241,17 +241,17 @@ const MC = {
     if (this._lbCache) return this._lbCache;
 
     const fake = [
-      { username:"CryptoMage", avatar:"🧝", level:12, xp:5840 },
-      { username:"VoxelWitch", avatar:"🧙‍♀️", level:10, xp:4210 },
-      { username:"ForgeKnight", avatar:"⚔️", level:9, xp:3900 },
-      { username:"DataDragon", avatar:"🐉", level:8, xp:3200 },
-      { username:"StarCrafter", avatar:"⭐", level:7, xp:2750 },
-      { username:"PrismLord", avatar:"💎", level:6, xp:2100 },
-      { username:"NullByte", avatar:"🤖", level:5, xp:1500 },
+      { username: "CryptoMage", avatar: "🧝", level: 12, xp: 5840 },
+      { username: "VoxelWitch", avatar: "🧙‍♀️", level: 10, xp: 4210 },
+      { username: "ForgeKnight", avatar: "⚔️", level: 9, xp: 3900 },
+      { username: "DataDragon", avatar: "🐉", level: 8, xp: 3200 },
+      { username: "StarCrafter", avatar: "⭐", level: 7, xp: 2750 },
+      { username: "PrismLord", avatar: "💎", level: 6, xp: 2100 },
+      { username: "NullByte", avatar: "🤖", level: 5, xp: 1500 },
     ];
-    const you = u ? { username:u.username, avatar:u.avatar, level:u.level, xp:u.xp, isMe:true } : null;
-    if(you) fake.push(you);
-    return fake.sort((a,b)=>b.xp-a.xp).map((r,i)=>({...r,rank:i+1}));
+    const you = u ? { username: u.username, avatar: u.avatar, level: u.level, xp: u.xp, isMe: true } : null;
+    if (you) fake.push(you);
+    return fake.sort((a, b) => b.xp - a.xp).map((r, i) => ({ ...r, rank: i + 1 }));
   },
 
   _lbCache: null,
@@ -274,14 +274,14 @@ const MC = {
 };
 
 // Auto-update streak on load
-(function checkStreak(){
+(function checkStreak() {
   const u = MC.getUser();
-  if(!u) return;
+  if (!u) return;
   const today = new Date().toDateString();
-  if(u.lastLogin !== today) {
+  if (u.lastLogin !== today) {
     const last = new Date(u.lastLogin);
-    const diff = Math.floor((new Date()-last)/(1000*60*60*24));
-    u.streak = diff === 1 ? (u.streak||0)+1 : 1;
+    const diff = Math.floor((new Date() - last) / (1000 * 60 * 60 * 24));
+    u.streak = diff === 1 ? (u.streak || 0) + 1 : 1;
     u.lastLogin = today;
     MC.saveUser(u);
   }
