@@ -3,18 +3,28 @@
 
 (function () {
   /* ── RESOLVE CONFIG ──────────────────────────────────────
-     Key comes from js/config.js (gitignored).
-     Fallback chain:
+     Key is resolved dynamically each call so that a key saved
+     via the in-chat form is picked up immediately.
+     Priority:
        1. window.MATHCRAFT_CONFIG.GROQ_API_KEY  (config.js)
-       2. localStorage "mc_groq_api_key"         (legacy)
+       2. localStorage "mc_groq_api_key"         (user pasted in UI)
   ──────────────────────────────────────────────────────── */
-  const CFG         = window.MATHCRAFT_CONFIG || {};
-  const GROQ_API_KEY = (CFG.GROQ_API_KEY || "").trim() ||
-                       (localStorage.getItem("mc_groq_api_key") || "").trim();
+  function resolveKey() {
+    const cfg = window.MATHCRAFT_CONFIG || {};
+    return (
+      (cfg.GROQ_API_KEY || "").trim() ||
+      (localStorage.getItem("mc_groq_api_key") || "").trim()
+    );
+  }
+
+  const CFG          = window.MATHCRAFT_CONFIG || {};
   const GROQ_MODEL   = CFG.GROQ_MODEL || "llama-3.3-70b-versatile";
   const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 
-  const KEY_READY = GROQ_API_KEY && !GROQ_API_KEY.includes("your_key_here");
+  function isKeyReady() {
+    const k = resolveKey();
+    return !!k && !k.includes("your_key_here") && !k.includes("gsk_your");
+  }
 
   /* ── BOT IDENTITY ── */
   const BOT_NAME  = "Crafty";
@@ -42,16 +52,18 @@ Format math in plain text only (e.g. sin(30°) = 1/2, not LaTeX).`;
     style.textContent = CHATBOT_CSS;
     document.head.appendChild(style);
 
+    const ready = isKeyReady();
+
     /* Floating Bubble */
     const bubble = document.createElement("div");
     bubble.id = "mc-chat-bubble";
-    bubble.title = KEY_READY ? "Ask Crafty — AI Math Crafter" : "Crafty needs config.js setup";
+    bubble.title = ready ? "Ask Crafty — AI Math Crafter" : "Crafty needs a Groq API key";
     bubble.onclick = toggleChat;
     bubble.innerHTML = `
       <div class="mc-owl-anim">${BOT_EMOJI}</div>
       <div class="mc-bubble-badge" id="mcBubbleBadge" style="display:none">!</div>
     `;
-    if (!KEY_READY) bubble.classList.add("mc-bubble-warn");
+    if (!ready) bubble.classList.add("mc-bubble-warn");
     document.body.appendChild(bubble);
 
     /* Chat Modal */
@@ -65,9 +77,9 @@ Format math in plain text only (e.g. sin(30°) = 1/2, not LaTeX).`;
         <div class="mc-chat-avatar">${BOT_EMOJI}</div>
         <div class="mc-chat-info">
           <span class="mc-chat-name">${BOT_NAME}</span>
-          <span class="mc-chat-status">
-            <span class="mc-status-dot ${KEY_READY ? "" : "mc-dot-warn"}"></span>
-            <span>${KEY_READY ? "AI Math Crafter · Ready ✅" : "API key missing ⚠️"}</span>
+          <span class="mc-chat-status" id="mcStatusText">
+            <span class="mc-status-dot ${ready ? "" : "mc-dot-warn"}" id="mcStatusDot"></span>
+            <span id="mcStatusLabel">${ready ? "AI Math Crafter · Ready ✅" : "API key missing ⚠️"}</span>
           </span>
         </div>
         <div class="mc-chat-header-actions">
@@ -76,32 +88,33 @@ Format math in plain text only (e.g. sin(30°) = 1/2, not LaTeX).`;
         </div>
       </div>
 
-      ${KEY_READY ? "" : `
-      <!-- NO-KEY BANNER -->
-      <div class="mc-nokey-banner">
+      <!-- NO-KEY BANNER (shown when key missing) -->
+      <div class="mc-nokey-banner" id="mcNoKeyBanner" style="display:${ready ? "none" : "block"}">
         <div class="mc-nokey-icon">🔑</div>
-        <p class="mc-nokey-title">API Key Not Found</p>
+        <p class="mc-nokey-title">Paste Your Groq API Key</p>
         <p class="mc-nokey-desc">
-          Open <code>js/config.js</code> and replace<br>
-          <code>"gsk_your_key_here"</code> with your real Groq key.<br><br>
           Get a <strong>free</strong> key at
           <a href="https://console.groq.com" target="_blank" class="mc-key-link">console.groq.com</a>
-          (no credit card needed).
+          (no credit card needed), then paste it below:
         </p>
-        <div class="mc-nokey-steps">
-          <div class="mc-step">1️⃣ Go to <strong>console.groq.com</strong> → create account</div>
-          <div class="mc-step">2️⃣ Click <strong>"Create API Key"</strong> → copy the key</div>
-          <div class="mc-step">3️⃣ Open <strong>js/config.js</strong> → paste the key → save</div>
-          <div class="mc-step">4️⃣ Reload this page → Crafty is ready! ⛏️</div>
+        <div class="mc-key-input-row">
+          <input
+            type="password"
+            id="mcApiKeyInput"
+            class="mc-key-input"
+            placeholder="gsk_…"
+            autocomplete="off"
+          />
+          <button class="mc-key-save-btn" onclick="window._mcChatbot.saveKey()">Save &amp; Start ⛏️</button>
         </div>
+        <p class="mc-key-hint" id="mcKeyHint"></p>
       </div>
-      `}
 
       <!-- MESSAGES -->
       <div class="mc-chat-messages" id="mcChatMessages"></div>
 
       <!-- QUICK CHIPS -->
-      <div class="mc-quick-chips" id="mcQuickChips">
+      <div class="mc-quick-chips" id="mcQuickChips" style="display:${ready ? "flex" : "none"}">
         <button class="mc-chip" onclick="window._mcChatbot.sendQuick('Explain sin, cos, tan with examples')">📐 Trig</button>
         <button class="mc-chip" onclick="window._mcChatbot.sendQuick('How to solve probability problems?')">🎲 Probability</button>
         <button class="mc-chip" onclick="window._mcChatbot.sendQuick('Explain sets and Venn diagrams')">🌿 Sets</button>
@@ -113,17 +126,17 @@ Format math in plain text only (e.g. sin(30°) = 1/2, not LaTeX).`;
         <textarea
           id="mcChatInput"
           class="mc-chat-input"
-          placeholder="${KEY_READY ? "Ask Crafty… e.g. Solve sin²θ + cos²θ = ?" : "Set up js/config.js to start chatting…"}"
+          placeholder="${ready ? "Ask Crafty… e.g. Solve sin²θ + cos²θ = ?" : "Save your API key above to start chatting…"}"
           rows="1"
           maxlength="800"
-          ${KEY_READY ? "" : "disabled"}
+          ${ready ? "" : "disabled"}
           onkeydown="window._mcChatbot.handleKey(event)"
           oninput="window._mcChatbot.autoResize(this)"
         ></textarea>
         <button class="mc-send-btn" id="mcSendBtn"
           onclick="window._mcChatbot.sendMessage()"
-          ${KEY_READY ? "" : "disabled"}
-          title="${KEY_READY ? "Send" : "API key required"}">
+          ${ready ? "" : "disabled"}
+          title="${ready ? "Send" : "API key required"}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                stroke-linecap="round" stroke-linejoin="round">
             <line x1="22" y1="2" x2="11" y2="13"/>
@@ -135,9 +148,40 @@ Format math in plain text only (e.g. sin(30°) = 1/2, not LaTeX).`;
     `;
     document.body.appendChild(modal);
 
-    if (KEY_READY) {
+    if (ready) {
       showWelcome();
     }
+  }
+
+  /* ── Activate the chatbot after key is saved in-UI ── */
+  function saveKey() {
+    const input = document.getElementById("mcApiKeyInput");
+    const hint  = document.getElementById("mcKeyHint");
+    const key   = (input ? input.value : "").trim();
+    if (!key || key.length < 10) {
+      if (hint) { hint.textContent = "⚠️ Please paste a valid Groq key (starts with gsk_…)"; hint.style.color = "#FF7043"; }
+      return;
+    }
+    localStorage.setItem("mc_groq_api_key", key);
+
+    /* Update UI to ready state without full reload */
+    const banner  = document.getElementById("mcNoKeyBanner");
+    const chips   = document.getElementById("mcQuickChips");
+    const textarea= document.getElementById("mcChatInput");
+    const sendBtn = document.getElementById("mcSendBtn");
+    const dot     = document.getElementById("mcStatusDot");
+    const label   = document.getElementById("mcStatusLabel");
+    const bubble  = document.getElementById("mc-chat-bubble");
+
+    if (banner)   { banner.style.display = "none"; }
+    if (chips)    { chips.style.display  = "flex"; }
+    if (textarea) { textarea.disabled = false; textarea.placeholder = "Ask Crafty… e.g. Solve sin²θ + cos²θ = ?"; textarea.focus(); }
+    if (sendBtn)  { sendBtn.disabled = false; sendBtn.title = "Send"; }
+    if (dot)      { dot.classList.remove("mc-dot-warn"); }
+    if (label)    { label.textContent = "AI Math Crafter · Ready ✅"; }
+    if (bubble)   { bubble.classList.remove("mc-bubble-warn"); bubble.title = "Ask Crafty — AI Math Crafter"; }
+
+    showWelcome();
   }
 
   /* ════════════════════════════════════════
@@ -150,7 +194,7 @@ Format math in plain text only (e.g. sin(30°) = 1/2, not LaTeX).`;
     document.getElementById("mc-chat-modal").classList.add("open");
     document.getElementById("mc-chat-bubble").classList.add("active");
     hideBadge();
-    if (KEY_READY) setTimeout(() => document.getElementById("mcChatInput").focus(), 320);
+    if (isKeyReady()) setTimeout(() => document.getElementById("mcChatInput").focus(), 320);
   }
 
   function closeChat() {
@@ -164,7 +208,7 @@ Format math in plain text only (e.g. sin(30°) = 1/2, not LaTeX).`;
     const c = document.getElementById("mcChatMessages");
     if (c) c.innerHTML = "";
     document.getElementById("mcQuickChips").style.display = "flex";
-    if (KEY_READY) showWelcome();
+    if (isKeyReady()) showWelcome();
   }
 
   function hideBadge() {
@@ -186,7 +230,7 @@ Format math in plain text only (e.g. sin(30°) = 1/2, not LaTeX).`;
      MESSAGING
   ════════════════════════════════════════ */
   function sendQuick(text) {
-    if (!KEY_READY) return;
+    if (!isKeyReady()) return;
     document.getElementById("mcQuickChips").style.display = "none";
     document.getElementById("mcChatInput").value = text;
     sendMessage();
@@ -205,7 +249,7 @@ Format math in plain text only (e.g. sin(30°) = 1/2, not LaTeX).`;
   }
 
   async function sendMessage() {
-    if (isTyping || !KEY_READY) return;
+    if (isTyping || !isKeyReady()) return;
     const input = document.getElementById("mcChatInput");
     const text  = (input.value || "").trim();
     if (!text) return;
@@ -228,9 +272,16 @@ Format math in plain text only (e.g. sin(30°) = 1/2, not LaTeX).`;
       if (!isOpen) showBadge();
     } catch (err) {
       removeTyping(typingId);
-      appendMessage("bot",
-        `⚠️ **Error contacting Groq:**\n${err.message}\n\nCheck your key in **js/config.js** and make sure you're connected to the internet. ⛏️`
-      );
+      const is401 = err.message.includes("401") || err.message.toLowerCase().includes("invalid") || err.message.toLowerCase().includes("unauthorized");
+      if (is401) {
+        appendMessage("bot",
+          `🔑 **Invalid or Expired API Key!**\n\nYour Groq key was rejected. Please:\n1. Get a fresh key at **console.groq.com**\n2. Paste it in the chat UI (click the ⛏️ bubble, look for the key form) or update **js/config.js**\n3. Reload the page. ⛏️`
+        );
+      } else {
+        appendMessage("bot",
+          `⚠️ **Error contacting Groq:**\n${err.message}\n\nMake sure you're connected to the internet and try again. ⛏️`
+        );
+      }
     } finally {
       isTyping = false;
       document.getElementById("mcSendBtn").disabled = false;
@@ -238,6 +289,8 @@ Format math in plain text only (e.g. sin(30°) = 1/2, not LaTeX).`;
   }
 
   async function callGroqAPI() {
+    const apiKey = resolveKey(); /* always re-read so in-UI saved keys work */
+    if (!apiKey) throw new Error("401 No API key configured");
     const messages = [
       { role: "system", content: SYSTEM_PROMPT },
       ...chatHistory.slice(-12)
@@ -246,13 +299,13 @@ Format math in plain text only (e.g. sin(30°) = 1/2, not LaTeX).`;
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${GROQ_API_KEY}`
+        "Authorization": `Bearer ${apiKey}`
       },
       body: JSON.stringify({ model: GROQ_MODEL, messages, max_tokens: 800, temperature: 0.7 })
     });
     if (!res.ok) {
       let msg = `HTTP ${res.status}`;
-      try { msg = (await res.json())?.error?.message || msg; } catch (_) {}
+      try { msg = (await res.json())?.error?.message || `${msg}`; } catch (_) {}
       throw new Error(msg);
     }
     const data = await res.json();
@@ -407,12 +460,26 @@ Format math in plain text only (e.g. sin(30°) = 1/2, not LaTeX).`;
     }
     .mc-key-link { color:#3FA34D; font-weight:600; text-decoration:none; }
     .mc-key-link:hover { text-decoration:underline; }
-    .mc-nokey-steps {
-      margin-top:12px; display:flex; flex-direction:column; gap:5px;
-      background:rgba(255,255,255,.04); border-radius:10px; padding:10px 12px;
-      text-align:left;
+    .mc-key-input-row {
+      display:flex; gap:8px; margin-top:12px; align-items:center;
     }
-    .mc-step { font-size:.75rem; color:rgba(255,255,255,.6); line-height:1.5; }
+    .mc-key-input {
+      flex:1; background:rgba(255,255,255,.08); border:1.5px solid rgba(63,163,77,.3);
+      border-radius:10px; color:#fff; font-size:.8rem; padding:8px 11px;
+      outline:none; font-family:'Poppins','Segoe UI',sans-serif;
+      transition:border-color .2s,box-shadow .2s;
+    }
+    .mc-key-input::placeholder { color:rgba(255,255,255,.3); }
+    .mc-key-input:focus { border-color:#3FA34D; box-shadow:0 0 0 3px rgba(63,163,77,.15); }
+    .mc-key-save-btn {
+      background:linear-gradient(135deg,#3FA34D,#2ECC71); color:#fff;
+      border:none; border-radius:10px; padding:8px 13px; cursor:pointer;
+      font-size:.78rem; font-weight:700; font-family:'Poppins',sans-serif;
+      white-space:nowrap;
+      transition:transform .16s,box-shadow .16s;
+    }
+    .mc-key-save-btn:hover { transform:translateY(-2px); box-shadow:0 6px 18px rgba(63,163,77,.4); }
+    .mc-key-hint { font-size:.72rem; margin-top:6px; min-height:1em; }
 
     /* Messages */
     .mc-chat-messages {
@@ -531,7 +598,7 @@ Format math in plain text only (e.g. sin(30°) = 1/2, not LaTeX).`;
 
   window._mcChatbot = {
     openChat, closeChat, clearChat,
-    sendQuick, sendMessage, handleKey, autoResize
+    sendQuick, sendMessage, handleKey, autoResize, saveKey
   };
 
   init();
