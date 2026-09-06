@@ -8,16 +8,16 @@
        1. window.MATHCRAFT_CONFIG.GROQ_API_KEY  (config.js)
        2. localStorage "mc_groq_api_key"         (legacy)
   ──────────────────────────────────────────────────────── */
-  const CFG         = window.MATHCRAFT_CONFIG || {};
+  const CFG = window.MATHCRAFT_CONFIG || {};
   const GROQ_API_KEY = (CFG.GROQ_API_KEY || "").trim() ||
-                       (localStorage.getItem("mc_groq_api_key") || "").trim();
-  const GROQ_MODEL   = CFG.GROQ_MODEL || "llama-3.3-70b-versatile";
+    (localStorage.getItem("mc_groq_api_key") || "").trim();
+  const GROQ_MODEL = CFG.GROQ_MODEL || "openai/gpt-oss-20b";
   const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 
   const KEY_READY = GROQ_API_KEY && !GROQ_API_KEY.includes("your_key_here");
 
   /* ── BOT IDENTITY ── */
-  const BOT_NAME  = "Crafty";
+  const BOT_NAME = "Crafty";
   const BOT_EMOJI = "⛏️";
 
   const SYSTEM_PROMPT = `You are Crafty, the AI Math Crafter of MathCraft — a Minecraft-inspired gamified math learning app.
@@ -31,8 +31,8 @@ Format math in plain text only (e.g. sin(30°) = 1/2, not LaTeX).`;
 
   /* ── STATE ── */
   let chatHistory = [];
-  let isOpen      = false;
-  let isTyping    = false;
+  let isOpen = false;
+  let isTyping = false;
 
   /* ════════════════════════════════════════
      BUILD DOM
@@ -207,7 +207,7 @@ Format math in plain text only (e.g. sin(30°) = 1/2, not LaTeX).`;
   async function sendMessage() {
     if (isTyping || !KEY_READY) return;
     const input = document.getElementById("mcChatInput");
-    const text  = (input.value || "").trim();
+    const text = (input.value || "").trim();
     if (!text) return;
 
     document.getElementById("mcQuickChips").style.display = "none";
@@ -228,8 +228,12 @@ Format math in plain text only (e.g. sin(30°) = 1/2, not LaTeX).`;
       if (!isOpen) showBadge();
     } catch (err) {
       removeTyping(typingId);
+      const isModelErr = err.message && (err.message.includes("does not exist") || err.message.includes("model"));
+      const hint = isModelErr
+        ? `The model **${GROQ_MODEL}** isn't accessible on your key.\nTry changing \`GROQ_MODEL\` in **js/config.js** to \`"llama-3.1-8b-instant"\`. ⛏️`
+        : `Check your key in **js/config.js** and make sure you're connected to the internet. ⛏️`;
       appendMessage("bot",
-        `⚠️ **Error contacting Groq:**\n${err.message}\n\nCheck your key in **js/config.js** and make sure you're connected to the internet. ⛏️`
+        `⚠️ **Error contacting Groq:**\n${err.message}\n\n${hint}`
       );
     } finally {
       isTyping = false;
@@ -252,7 +256,7 @@ Format math in plain text only (e.g. sin(30°) = 1/2, not LaTeX).`;
     });
     if (!res.ok) {
       let msg = `HTTP ${res.status}`;
-      try { msg = (await res.json())?.error?.message || msg; } catch (_) {}
+      try { msg = (await res.json())?.error?.message || msg; } catch (_) { }
       throw new Error(msg);
     }
     const data = await res.json();
@@ -265,7 +269,7 @@ Format math in plain text only (e.g. sin(30°) = 1/2, not LaTeX).`;
   function appendMessage(role, text) {
     const c = document.getElementById("mcChatMessages");
     if (!c) return;
-    const wrap   = document.createElement("div");
+    const wrap = document.createElement("div");
     wrap.className = `mc-msg mc-msg-${role}`;
     const avatar = document.createElement("div");
     avatar.className = "mc-msg-avatar";
@@ -274,16 +278,16 @@ Format math in plain text only (e.g. sin(30°) = 1/2, not LaTeX).`;
     bubble.className = "mc-msg-bubble";
     bubble.innerHTML = formatText(text);
     if (role === "bot") { wrap.appendChild(avatar); wrap.appendChild(bubble); }
-    else                { wrap.appendChild(bubble); wrap.appendChild(avatar); }
+    else { wrap.appendChild(bubble); wrap.appendChild(avatar); }
     c.appendChild(wrap);
     requestAnimationFrame(() => wrap.classList.add("visible"));
     c.scrollTop = c.scrollHeight;
   }
 
   function showTyping() {
-    const c  = document.getElementById("mcChatMessages");
+    const c = document.getElementById("mcChatMessages");
     const id = "typing-" + Date.now();
-    const w  = document.createElement("div");
+    const w = document.createElement("div");
     w.className = "mc-msg mc-msg-bot"; w.id = id;
     w.innerHTML = `<div class="mc-msg-avatar">${BOT_EMOJI}</div>
       <div class="mc-msg-bubble mc-typing-bubble">
