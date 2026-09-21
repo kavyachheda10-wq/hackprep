@@ -1,0 +1,45 @@
+# MathCraft - Netlify Configuration
+
+[build]
+  publish = "."
+  command = ""
+
+# ── Redirect Rules ──────────────────────────────────────────────────────────
+[[redirects]]
+  from = "/pages/:page"
+  to   = "/pages/:page.html"
+  status = 200
+  force  = false
+
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 404
+
+# ── Headers ─────────────────────────────────────────────────────────────────
+[[headers]]
+  for = "/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+[[headers]]
+  for = "/pages/*.html"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options        = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy        = "strict-origin-when-cross-origin"

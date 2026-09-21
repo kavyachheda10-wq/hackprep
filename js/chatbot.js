@@ -18,7 +18,7 @@
   }
 
   const CFG          = window.MATHCRAFT_CONFIG || {};
-  const GROQ_MODEL   = CFG.GROQ_MODEL || "llama-3.3-70b-versatile";
+  const GROQ_MODEL   = CFG.GROQ_MODEL || "openai/gpt-oss-20b";
   const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 
   function isKeyReady() {

@@ -7,8 +7,8 @@
 .env.local
 .env.*.local
 
-# Browser-side secret config (contains real Groq API key)
-js/config.js
+# Browser-side secret config — included in deploy (needed by Groq chatbot + Supabase)
+# js/config.js  ← intentionally NOT excluded so Netlify deploys it
 
 # ── OS FILES ─────────────────────────────────────────────────────────────────
 .DS_Store
@@ -30,3 +30,4 @@ yarn-error.log*
 dist/
 build/
 .cache/
+.vercel
