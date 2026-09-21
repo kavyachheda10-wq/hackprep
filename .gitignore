@@ -7,8 +7,8 @@
 .env.local
 .env.*.local
 
-# Browser-side secret config — included in deploy (needed by Groq chatbot + Supabase)
-# js/config.js  ← intentionally NOT excluded so Netlify deploys it
+# Browser-side secret config
+js/config.js
 
 # ── OS FILES ─────────────────────────────────────────────────────────────────
 .DS_Store
